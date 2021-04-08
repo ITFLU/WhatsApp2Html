@@ -2,7 +2,10 @@
 Generiert aus einem exportierten WhatsApp-Chat eine HTML-Ansicht (inkl. Attachments)
 
 ## Anwendung
-Datei *convert.py* in das entsprechende Verzeichnis mit der TXT-Datei mit dem Chatinhalt und den evtl. vorhandenen Attachments kopieren und ausführen. Der Name der TXT-Datei wird verlangt, um die Verarbeitung zu starten. Als Ergebnis erhält man eine HTML-Datei mit dem Namen *_chat.html*. Diese muss im selben Verzeichnis wie die Attachments verbleiben, wenn diese aus der HTML-Ansicht geöffnet werden sollen.
+1. Datei *_convert.py* in das entsprechende Verzeichnis mit den Chatdaten kopieren und ausführen
+2. Name der txt-Datei mit dem Chatinhalt angeben (Default:  _chat.txt)
+3. HTML-Datei *_chat.html* wird generiert
+> Die generierte html-Datei muss im selben Verzeichnis wie die Attachments verbleiben, wenn diese in der HTML-Ansicht angezeigt werden sollen.
 
 ## Wie kommt man zu diesen Chatdaten?
 Besagte Chatdaten können aus WhatsApp vom entsprechenden Gerät exportiert werden.
