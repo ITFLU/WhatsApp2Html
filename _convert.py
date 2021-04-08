@@ -11,11 +11,25 @@ Version: 08.04.2021
 """
 
 
+def getLinecount(filename):
+    counter = 0
+    file_input = open(filename, "r", encoding="utf-8")
+    for line in file_input:
+        counter += 1
+    file_input.close()
+    return counter
+
 def isAndroid(filename):
     file_input = open(chatname, "r", encoding="utf-8")
     line = file_input.readline()
     file_input.close()
     return line[16] == "-"
+
+def isSecondRow(line):
+    try:
+        return line[2] != "." or line[5] != "." or line[12] != ":"
+    except:
+        return True
 
 def initializeHtml():
     file_html = open("_chat.html","w", encoding="utf-8")
@@ -58,10 +72,34 @@ def generateFromAndroid(chatname):
     i = 0
     day = ""
     firstPerson = "?"
+    result = ""
+    counter = 0
+    linecount = getLinecount(chatname)
     for line in file_input:
+        counter+=1
         i+=1
         line = line.replace('\u200e', '')
         line = line.replace('\u200f', '')
+
+        if isSecondRow(line) and i>1 and result != "":
+            # Add line (= new line of previous message) to result & go to next line
+            result += "<br>"+line
+            continue
+        elif i>1:
+            # close previous entry & write it to the file
+            if person == firstPerson:
+                # first person >> entry on left side
+                result += "<td width='70px'></td></tr>"
+            else:
+                # second person >> entry on right side
+                result += "</tr>"
+            # new day >> date divider
+            if date != day:
+                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                file_html.write(divider)
+                day = date
+            file_html.write(result)
+
         result = "<tr>"
         if line.startswith('['):
             line = line.replace('[', '')
@@ -117,21 +155,22 @@ def generateFromAndroid(chatname):
         else:
             # text message
             result += line
-        # end of message entry
-        if person == firstPerson:
-            # first person >> entry on left side
-            result += "<td width='70px'></td></tr>"
-        else:
-            # second person >> entry on right side
-            result += "</tr>"
-        # new day >> date divider
-        if date != day:
-            divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
-            file_html.write(divider)
-            day = date
 
-        # Write entry
-        file_html.write(result)
+
+        if counter >= linecount:
+            # close last entry & write it to the file
+            if person == firstPerson:
+                # first person >> entry on left side
+                result += "<td width='70px'></td></tr>"
+            else:
+                # second person >> entry on right side
+                result += "</tr>"
+            # new day >> date divider
+            if date != day:
+                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                file_html.write(divider)
+                day = date
+            file_html.write(result)
 
      # Close files
     file_input.close()
@@ -145,10 +184,34 @@ def generateFromIOS(chatname):
     i = 0
     day = ""
     firstPerson = "?"
+    result = ""
+    counter = 0
+    linecount = getLinecount(chatname)
     for line in file_input:
+        counter+=1
         i+=1
         line = line.replace('\u200e', '')
         line = line.replace('\u200f', '')
+
+        if not line.startswith('[') and i>1 and result != "":
+            # Add line (= new line of previous message) to result & go to next line
+            result += "<br>"+line
+            continue
+        elif i>1:
+            # close previous entry & write it to the file
+            if person == firstPerson:
+                # first person >> entry on left side
+                result += "<td width='70px'></td></tr>"
+            else:
+                # second person >> entry on right side
+                result += "</tr>"
+            # new day >> date divider
+            if date != day:
+                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                file_html.write(divider)
+                day = date
+            file_html.write(result)
+
         result = "<tr>"
         if line.startswith('['):
             line = line.replace('[', '')
@@ -204,21 +267,21 @@ def generateFromIOS(chatname):
         else:
             # text message
             result += line
-        # end of message entry
-        if person == firstPerson:
-            # first person >> entry on left side
-            result += "<td width='70px'></td></tr>"
-        else:
-            # second person >> entry on right side
-            result += "</tr>"
-        # new day >> date divider
-        if date != day:
-            divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
-            file_html.write(divider)
-            day = date
 
-        # Write entry
-        file_html.write(result)
+        if counter >= linecount:
+            # close last entry & write it to the file
+            if person == firstPerson:
+                # first person >> entry on left side
+                result += "<td width='70px'></td></tr>"
+            else:
+                # second person >> entry on right side
+                result += "</tr>"
+            # new day >> date divider
+            if date != day:
+                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                file_html.write(divider)
+                day = date
+            file_html.write(result)
 
      # Close files
     file_input.close()
