@@ -153,8 +153,20 @@ def generateFromAndroid(chatname):
                 # different files
                 result += "DATEI: <a href='"+filename+"' target='_blank'>"+filename+"</a>"
         else:
-            # text message
-            result += line
+            # ignored attachments
+            if line.endswith(' weggelassen', 0, -1): # -1 = '\n'
+                result += "<span class='comment'>"+line+"</span>"
+            else:
+                # deleted messages
+                if line.endswith(' wurde gelöscht.', 0, -1): # -1 = '\n'
+                    result += "<span class='comment'>"+line+"</span>"
+                else:
+                    # missed call
+                    if line.endswith(' Videoanruf', 0, -1) or line.endswith(' Sprachanruf', 0, -1): # -1 = '\n'
+                        result += "<span class='comment'>"+line+"</span>"
+                    else:
+                        # text message
+                        result += line
 
 
         if counter >= linecount:
@@ -265,8 +277,20 @@ def generateFromIOS(chatname):
                 # different files
                 result += "DATEI: <a href='"+filename+"' target='_blank'>"+filename+"</a>"
         else:
-            # text message
-            result += line
+            # ignored attachments
+            if line.endswith(' weggelassen', 0, -1): # -1 = '\n'
+                result += "<span class='comment'>"+line+"</span>"
+            else:
+                # deleted messages
+                if line.endswith(' wurde gelöscht.', 0, -1): # -1 = '\n'
+                    result += "<span class='comment'>"+line+"</span>"
+                else:
+                    # missed call
+                    if line.endswith(' Videoanruf', 0, -1) or line.endswith(' Sprachanruf', 0, -1): # -1 = '\n'
+                        result += "<span class='comment'>"+line+"</span>"
+                    else:
+                        # text message
+                        result += line
 
         if counter >= linecount:
             # close last entry & write it to the file
