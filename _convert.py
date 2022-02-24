@@ -7,7 +7,7 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2021, Luzerner Polizei
 Author:  Michael Wicki
-Version: 08.04.2021
+Version: 24.02.2021
 """
 
 
@@ -84,6 +84,20 @@ def generateFromAndroid(chatname):
         if isSecondRow(line) and i>1 and result != "":
             # Add line (= new line of previous message) to result & go to next line
             result += "<br>"+line
+            if counter >= linecount:
+                # close last entry & write it to the file
+                if person == firstPerson:
+                    # first person >> entry on left side
+                    result += "<td width='70px'></td></tr>"
+                else:
+                    # second person >> entry on right side
+                    result += "</tr>"
+                # new day >> date divider
+                if date != day:
+                    divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                    file_html.write(divider)
+                    day = date
+                file_html.write(result)
             continue
         elif i>1:
             # close previous entry & write it to the file
@@ -208,6 +222,20 @@ def generateFromIOS(chatname):
         if not line.startswith('[') and i>1 and result != "":
             # Add line (= new line of previous message) to result & go to next line
             result += "<br>"+line
+            if counter >= linecount:
+                # close last entry & write it to the file
+                if person == firstPerson:
+                    # first person >> entry on left side
+                    result += "<td width='70px'></td></tr>"
+                else:
+                    # second person >> entry on right side
+                    result += "</tr>"
+                # new day >> date divider
+                if date != day:
+                    divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                    file_html.write(divider)
+                    day = date
+                file_html.write(result)
             continue
         elif i>1:
             # close previous entry & write it to the file
