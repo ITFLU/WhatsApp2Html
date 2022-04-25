@@ -39,6 +39,7 @@ def initializeHtml():
     head = """
     <html>
     <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
     body,table { font-family: Arial, sans-serif; font-size: 14px; }
     .msg1 { background-color: #CEE5D5; }
