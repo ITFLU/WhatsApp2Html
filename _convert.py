@@ -5,9 +5,9 @@ WhatsApp2Html
 -------------
 Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly existing attachments
 
-(c) 2021, Luzerner Polizei
+(c) 2022, Luzerner Polizei
 Author:  Michael Wicki
-Version: 24.02.2021
+Version: 25.04.2022
 """
 
 
@@ -19,7 +19,7 @@ def getLinecount(filename):
     file_input.close()
     return counter
 
-def isAndroid(filename):
+def isAndroid(chatname):
     file_input = open(chatname, "r", encoding="utf-8")
     line = file_input.readline()
     file_input.close()
@@ -348,6 +348,8 @@ videos = ['mpg' , 'mpeg', 'mp4', 'mov', 'm4v', 'wmv']
 # Ask for chatfile
 defaultname = "_chat.txt"
 chatname = input("Wie lautet die zu generierende Datei? [<Enter> = {}] ".format(defaultname)) or defaultname
+# remove " from path (prevents error while reading the file)
+chatname = chatname.replace("\"", "")
 
 try:
     # Start html-file
