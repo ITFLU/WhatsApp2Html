@@ -10,6 +10,8 @@ Author:  Michael Wicki
 Version: 25.04.2022
 """
 
+from pathlib import Path
+
 
 def getLinecount(filename):
     counter = 0
@@ -32,7 +34,7 @@ def isSecondRow(line):
         return True
 
 def initializeHtml():
-    file_html = open("_chat.html","w", encoding="utf-8")
+    file_html = open(outputfile,"w", encoding="utf-8")
     # Write start of html-file
     head = """
     <html>
@@ -54,7 +56,7 @@ def initializeHtml():
     file_html.close()
 
 def finishHtml():
-    file_html = open("_chat.html","a", encoding="utf-8")
+    file_html = open(outputfile,"a", encoding="utf-8")
     # Write end of html-file
     foot = """
     </table>
@@ -67,7 +69,7 @@ def finishHtml():
 def generateFromAndroid(chatname):
     # Open files
     file_input = open(chatname, "r", encoding="utf-8")
-    file_html = open("_chat.html","a", encoding="utf-8")
+    file_html = open(outputfile,"a", encoding="utf-8")
     # init counters & flags
     i = 0
     day = ""
@@ -205,7 +207,7 @@ def generateFromAndroid(chatname):
 def generateFromIOS(chatname):
     # Open files
     file_input = open(chatname, "r", encoding="utf-8")
-    file_html = open("_chat.html","a", encoding="utf-8")
+    file_html = open(outputfile,"a", encoding="utf-8")
     # init counters & flags
     i = 0
     day = ""
@@ -350,6 +352,9 @@ defaultname = "_chat.txt"
 chatname = input("Wie lautet die zu generierende Datei? [<Enter> = {}] ".format(defaultname)) or defaultname
 # remove " from path (prevents error while reading the file)
 chatname = chatname.replace("\"", "")
+# generate path for output-file from given input-file
+basepath = Path(chatname).parent.absolute()
+outputfile = Path(basepath, "_chat.html").absolute()
 
 try:
     # Start html-file
