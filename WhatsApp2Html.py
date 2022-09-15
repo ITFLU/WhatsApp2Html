@@ -7,7 +7,7 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2022, Luzerner Polizei
 Author:  Michael Wicki
-Version: 25.04.2022
+Version: 15.09.2022
 """
 
 from pathlib import Path
@@ -25,7 +25,7 @@ def isAndroid(chatname):
     file_input = open(chatname, "r", encoding="utf-8")
     line = file_input.readline()
     file_input.close()
-    return line[16] == "-"
+    return line[16] == "-" or line[18] == "-"
 
 def isSecondRow(line):
     try:
@@ -83,6 +83,7 @@ def generateFromAndroid(chatname):
         i+=1
         line = line.replace('\u200e', '')
         line = line.replace('\u200f', '')
+        original_line = line
 
         if isSecondRow(line) and i>1 and result != "":
             # Add line (= new line of previous message) to result & go to next line
@@ -117,15 +118,17 @@ def generateFromAndroid(chatname):
                 day = date
             file_html.write(result)
 
+        # cut date
+        posDash = line.find('-')
+        dateBase = line[:posDash-1]
+        date = dateBase[:8]
+        datetime = dateBase[:posDash]
+        line = line[posDash+2:]
+
         result = "<tr>"
-        if line.startswith('['):
+        if original_line.startswith('['):
             line = line.replace('[', '')
             line = line.replace(']', ':')
-
-        # cut date
-        date = line[:8]
-        datetime = line[:15]
-        line = line[18:]
 
         # person & date
         person = "?"
@@ -221,6 +224,7 @@ def generateFromIOS(chatname):
         i+=1
         line = line.replace('\u200e', '')
         line = line.replace('\u200f', '')
+        original_line = line
 
         if not line.startswith('[') and i>1 and result != "":
             # Add line (= new line of previous message) to result & go to next line
@@ -255,15 +259,18 @@ def generateFromIOS(chatname):
                 day = date
             file_html.write(result)
 
+        # cut date
+        posDateStart = line.find('[')+1
+        posDateEnd = line.find(']')
+        dateBase = line[posDateStart:posDateEnd]
+        date = dateBase[:8]
+        datetime = dateBase[:posDateEnd]
+        line = line[posDateEnd+2:]
+
         result = "<tr>"
-        if line.startswith('['):
+        if original_line.startswith('['):
             line = line.replace('[', '')
             line = line.replace(']', ':')
-
-        # cut date
-        date = line[:8]
-        datetime = line[:18]
-        line = line[20:]
 
         # person & date
         person = "?"
