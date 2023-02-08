@@ -1,5 +1,9 @@
 # WhatsApp2Html - Changelog
 
+## 08.02.2023
+- Probleme mit der Zusammenstellung des Dateipfad behoben
+- Probleme bei der Erkennung eines Attachments behoben
+
 ## 15.09.2022
 - Probleme mit 12h-Timestamps (AM/PM) behoben
 

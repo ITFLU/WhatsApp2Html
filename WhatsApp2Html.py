@@ -5,9 +5,9 @@ WhatsApp2Html
 -------------
 Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly existing attachments
 
-(c) 2022, Luzerner Polizei
+(c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 15.09.2022
+Version: 08.02.2023
 """
 
 from pathlib import Path
@@ -51,6 +51,7 @@ def initializeHtml():
     </style>
     </head>
     <body>
+
     <table cellspacing="12px" cellpadding="10px" width="100%">
     """
     file_html.write(head)
@@ -68,6 +69,7 @@ def finishHtml():
     file_html.close()
 
 def generateFromAndroid(chatname):
+    print("Android")
     # Open files
     file_input = open(chatname, "r", encoding="utf-8")
     file_html = open(outputfile,"a", encoding="utf-8")
@@ -209,6 +211,7 @@ def generateFromAndroid(chatname):
     file_html.close()
 
 def generateFromIOS(chatname):
+    print("iOS")
     # Open files
     file_input = open(chatname, "r", encoding="utf-8")
     file_html = open(outputfile,"a", encoding="utf-8")
@@ -296,7 +299,7 @@ def generateFromIOS(chatname):
             result += "<span class='sender'>"+person+"</span> - "
             result += "<span class='datetime'>"+datetime+"</span><br>"
         # message
-        if line.startswith('<Anhang:'):
+        if line.lstrip().startswith('<Anhang:'):
             # attachment
             filename = line[9:-2]
             ext = filename[filename.rfind('.')+1:]
@@ -361,8 +364,12 @@ chatname = input("Wie lautet die zu generierende Datei? [<Enter> = {}] ".format(
 # remove " from path (prevents error while reading the file)
 chatname = chatname.replace("\"", "")
 # generate path for output-file from given input-file
-basepath = Path(chatname).parent.absolute()
-outputfile = Path(basepath, "_chat.html").absolute()
+if ":" in chatname:
+    basepath = Path(chatname).parent
+    outputfile = Path(basepath, "_chat.html")
+else:
+    basepath = Path(chatname).parent.absolute() 
+    outputfile = Path(basepath, "_chat.html").absolute()
 
 try:
     # Start html-file
