@@ -306,7 +306,7 @@ def generateFromIOS(chatname):
             if ext in images:
                 # image
                 result += "<a href='"+filename+"' target='_blank'>"
-                result += "<img src='"+filename+"' height='200px'></a>"
+                result += "<img src='"+filename+"' style='max-height:200px;max-width:700px;'></a>"
                 result += "&nbsp;&nbsp;<span class='comment'>"+filename+"</span>"
             elif ext in videos:
                 # video
