@@ -1,8 +1,10 @@
 # WhatsApp2Html - Changelog
 
-## 08.02.2023
-- Probleme mit der Zusammenstellung des Dateipfad behoben
+## 09.02.2023
+- Probleme mit der Zusammenstellung des Dateipfads behoben
 - Probleme bei der Erkennung eines Attachments behoben
+- Probleme bei der Erkennung einer mehrzeiligen Nachricht behoben
+- Meldungen ohne Personenbeteiligung (z.B. "end-to-end encryption") werden anders dargestellt
 - Bildergrössen nun mittels max-height & max-width definiert
 
 ## 15.09.2022

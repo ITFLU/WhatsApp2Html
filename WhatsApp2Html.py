@@ -7,7 +7,7 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 08.02.2023
+Version: 09.02.2023
 """
 
 from pathlib import Path
@@ -25,11 +25,11 @@ def isAndroid(chatname):
     file_input = open(chatname, "r", encoding="utf-8")
     line = file_input.readline()
     file_input.close()
-    return line[16] == "-" or line[18] == "-"
+    return line[16] == "-" or line[18] == "-" or line[19] == "-"
 
 def isSecondRow(line):
     try:
-        return line[2] != "." or line[5] != "." or line[12] != ":"
+        return (line[2] != "." and line[2] != "/") or (line[5] != "." and line[2] != "/") or (line[12] != ":" and line[11] != ":")
     except:
         return True
 
@@ -44,6 +44,7 @@ def initializeHtml():
     body,table { font-family: Arial, sans-serif; font-size: 14px; }
     .msg1 { background-color: #CEE5D5; }
     .msg2 { background-color: #CFDAE5; }
+    .msgmain { background-color: #CCCCCC; }
     .datetime { font-size: 12px; color: #888888; font-style: italic; }
     .sender { font-size: 12px; color: #888888; font-style: italic; font-weight: bold; }
     .comment { font-size: 12px; font-style: italic; }
@@ -140,6 +141,8 @@ def generateFromAndroid(chatname):
             line = line[posColon+2:] # +1 = ':' / +1 = ' '
         else:
             i = 0
+            result += "<td colspan='3' class='msgmain'>"+line+"</td></tr>"
+            file_html.write(result)
             continue
         # start of entry
         if i==1:
@@ -156,9 +159,11 @@ def generateFromAndroid(chatname):
             result += "<span class='sender'>"+person+"</span> - "
             result += "<span class='datetime'>"+datetime+"</span><br>"
         # message
-        if line.endswith(' angehängt)', 0, -1): # -1 = '\n'
+        if line.endswith(' angehängt)', 0, -1) or line.endswith(' attached)', 0, -1): # -1 = '\n'
             # attachment
             filename = line[:-19]
+            if line.endswith(' attached)', 0, -1):
+                filename = line[:-17]
             ext = filename[filename.rfind('.')+1:]
             if ext in images:
                 # image
@@ -363,6 +368,7 @@ defaultname = "_chat.txt"
 chatname = input("Wie lautet die zu generierende Datei? [<Enter> = {}] ".format(defaultname)) or defaultname
 # remove " from path (prevents error while reading the file)
 chatname = chatname.replace("\"", "")
+chatname = chatname.replace("'", "")
 # generate path for output-file from given input-file
 if ":" in chatname:
     basepath = Path(chatname).parent
