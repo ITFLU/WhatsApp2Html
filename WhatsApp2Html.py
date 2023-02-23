@@ -7,7 +7,7 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 09.02.2023
+Version: 23.02.2023
 """
 
 from pathlib import Path
@@ -41,19 +41,20 @@ def initializeHtml():
     <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
-    body,table { font-family: Arial, sans-serif; font-size: 14px; }
-    .msg1 { background-color: #CEE5D5; }
-    .msg2 { background-color: #CFDAE5; }
-    .msgmain { background-color: #CCCCCC; }
-    .datetime { font-size: 12px; color: #888888; font-style: italic; }
-    .sender { font-size: 12px; color: #888888; font-style: italic; font-weight: bold; }
+    * { font-family: Arial, sans-serif; font-size: 14px; }
+    .msg { display: block; overflow-wrap: break-word; word-wrap: break-word; hyphens: auto; padding: 8px; border-radius: 5px; margin-bottom: 5px; }
+    .general { background-color: #CCCCCC; }
+    .msg1 { background-color: #CEE5D5; margin-right: 70px; }
+    .msg2 { background-color: #CFDAE5; margin-left: 70px; }
+    .metadata { font-size: 12px; color: #888888; font-style: italic; }
+    .timestamp { }
+    .sender { font-weight: bold; }
     .comment { font-size: 12px; font-style: italic; }
-    .divider { font-size: 11px; font-color: #888888; border-top: solid 1px #888888; padding: 0px 0px 0px 10px; margin-top: 15px; }
+    .divider { font-size: 11px; color: #888888; border-top: solid 1px #888888; padding: 0px 0px 15px 10px; margin-top: 20px; }
     </style>
     </head>
     <body>
 
-    <table cellspacing="12px" cellpadding="10px" width="100%">
     """
     file_html.write(head)
     file_html.close()
@@ -62,7 +63,6 @@ def finishHtml():
     file_html = open(outputfile,"a", encoding="utf-8")
     # Write end of html-file
     foot = """
-    </table>
     <br><br>
     </body>
     </html>"""
@@ -93,30 +93,20 @@ def generateFromAndroid(chatname):
             result += "<br>"+line
             if counter >= linecount:
                 # close last entry & write it to the file
-                if person == firstPerson:
-                    # first person >> entry on left side
-                    result += "<td width='70px'></td></tr>"
-                else:
-                    # second person >> entry on right side
-                    result += "</tr>"
+                result += "</div>"
                 # new day >> date divider
                 if date != day:
-                    divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                    divider = "<div class='divider'>"+date+"</div>"
                     file_html.write(divider)
                     day = date
                 file_html.write(result)
             continue
         elif i>1:
             # close previous entry & write it to the file
-            if person == firstPerson:
-                # first person >> entry on left side
-                result += "<td width='70px'></td></tr>"
-            else:
-                # second person >> entry on right side
-                result += "</tr>"
+            result += "</div>"
             # new day >> date divider
             if date != day:
-                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                divider = "<div class='divider'>"+date+"</div>"
                 file_html.write(divider)
                 day = date
             file_html.write(result)
@@ -128,7 +118,7 @@ def generateFromAndroid(chatname):
         datetime = dateBase[:posDash]
         line = line[posDash+2:]
 
-        result = "<tr>"
+        result = ""
         if original_line.startswith('['):
             line = line.replace('[', '')
             line = line.replace(']', ':')
@@ -141,7 +131,7 @@ def generateFromAndroid(chatname):
             line = line[posColon+2:] # +1 = ':' / +1 = ' '
         else:
             i = 0
-            result += "<td colspan='3' class='msgmain'>"+line+"</td></tr>"
+            result += "<div class='msg general'>"+line+"</div>"
             file_html.write(result)
             continue
         # start of entry
@@ -149,15 +139,14 @@ def generateFromAndroid(chatname):
             firstPerson = person
         if person == firstPerson:
             # first person >> entry on left side
-            result += "<td colspan='2' class='msg1'>"
-            result += "<span class='sender'>"+person+"</span> - "
-            result += "<span class='datetime'>"+datetime+"</span><br>"
+            result += "<div class='msg msg1'>"
+            result += "<span class='metadata sender'>"+person+"</span> - "
+            result += "<span class='metadata timestamp'>"+datetime+"</span><br>"
         else:
             # second person >> entry on right side
-            result += "<td width='70px'></td>"
-            result += "<td colspan='2' class='msg2'>"
-            result += "<span class='sender'>"+person+"</span> - "
-            result += "<span class='datetime'>"+datetime+"</span><br>"
+            result += "<div class='msg msg2'>"
+            result += "<span class='metadata sender'>"+person+"</span> - "
+            result += "<span class='metadata timestamp'>"+datetime+"</span><br>"
         # message
         if line.endswith(' angehängt)', 0, -1) or line.endswith(' attached)', 0, -1): # -1 = '\n'
             # attachment
@@ -198,15 +187,10 @@ def generateFromAndroid(chatname):
 
         if counter >= linecount:
             # close last entry & write it to the file
-            if person == firstPerson:
-                # first person >> entry on left side
-                result += "<td width='70px'></td></tr>"
-            else:
-                # second person >> entry on right side
-                result += "</tr>"
+            result += "</div>"
             # new day >> date divider
             if date != day:
-                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                divider = "<div class='divider'>"+date+"</div>"
                 file_html.write(divider)
                 day = date
             file_html.write(result)
@@ -239,30 +223,20 @@ def generateFromIOS(chatname):
             result += "<br>"+line
             if counter >= linecount:
                 # close last entry & write it to the file
-                if person == firstPerson:
-                    # first person >> entry on left side
-                    result += "<td width='70px'></td></tr>"
-                else:
-                    # second person >> entry on right side
-                    result += "</tr>"
+                result += "</div>"
                 # new day >> date divider
                 if date != day:
-                    divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                    divider = "<div class='divider'>"+date+"</div>"
                     file_html.write(divider)
                     day = date
                 file_html.write(result)
             continue
         elif i>1:
             # close previous entry & write it to the file
-            if person == firstPerson:
-                # first person >> entry on left side
-                result += "<td width='70px'></td></tr>"
-            else:
-                # second person >> entry on right side
-                result += "</tr>"
+            result += "</div>"
             # new day >> date divider
             if date != day:
-                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                divider = "<div class='divider'>"+date+"</div>"
                 file_html.write(divider)
                 day = date
             file_html.write(result)
@@ -275,7 +249,7 @@ def generateFromIOS(chatname):
         datetime = dateBase[:posDateEnd]
         line = line[posDateEnd+2:]
 
-        result = "<tr>"
+        result = ""
         if original_line.startswith('['):
             line = line.replace('[', '')
             line = line.replace(']', ':')
@@ -294,15 +268,14 @@ def generateFromIOS(chatname):
             firstPerson = person
         if person == firstPerson:
             # first person >> entry on left side
-            result += "<td colspan='2' class='msg1'>"
-            result += "<span class='sender'>"+person+"</span> - "
-            result += "<span class='datetime'>"+datetime+"</span><br>"
+            result += "<div class='msg msg1'>"
+            result += "<span class='metadata sender'>"+person+"</span> - "
+            result += "<span class='metadata timestamp'>"+datetime+"</span><br>"
         else:
             # second person >> entry on right side
-            result += "<td width='70px'></td>"
-            result += "<td colspan='2' class='msg2'>"
-            result += "<span class='sender'>"+person+"</span> - "
-            result += "<span class='datetime'>"+datetime+"</span><br>"
+            result += "<div class='msg msg2'>"
+            result += "<span class='metadata sender'>"+person+"</span> - "
+            result += "<span class='metadata timestamp'>"+datetime+"</span><br>"
         # message
         if line.lstrip().startswith('<Anhang:'):
             # attachment
@@ -340,15 +313,10 @@ def generateFromIOS(chatname):
 
         if counter >= linecount:
             # close last entry & write it to the file
-            if person == firstPerson:
-                # first person >> entry on left side
-                result += "<td width='70px'></td></tr>"
-            else:
-                # second person >> entry on right side
-                result += "</tr>"
+            result += "</div>"
             # new day >> date divider
             if date != day:
-                divider = "<tr><td colspan='3'><p class='divider'>"+date+"</p></td></tr>"
+                divider = "<div class='divider'>"+date+"</div>"
                 file_html.write(divider)
                 day = date
             file_html.write(result)

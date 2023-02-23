@@ -1,5 +1,8 @@
 # WhatsApp2Html - Changelog
 
+## 23.02.2023
+- Generiertes HTML von Table auf DIVs umgestellt... Word-Wrap kann nun bei langen Texten erzwungen werden.
+
 ## 09.02.2023
 - Probleme mit der Zusammenstellung des Dateipfads behoben
 - Probleme bei der Erkennung eines Attachments behoben
