@@ -12,13 +12,15 @@ Version: 1.0
 version = "1.0"
 
 from pathlib import Path
+from datetime import datetime
 import os
 import argparse
 
 
 class Message:
-	def __init__(self, timestamp, sender, message):
+	def __init__(self, timestamp: datetime, sender, message):
 		self.timestamp = timestamp
+		self.date_obj = None
 		self.sender = sender
 		self.message = message
 		self.attachment = ""
@@ -37,9 +39,11 @@ class Message:
 	def set_gui_class(self, classname):
 		self.gui_class = classname
 
+	def get_date_string(self):
+		return self.timestamp.strftime("%d.%m.%Y")
+
 	def to_string(self):
 		pass
-    
 
 
 class PathNotFoundException(Exception):
@@ -63,49 +67,15 @@ def is_android(chatname):
     file_input = open(chatname, "r", encoding="utf-8")
     line = file_input.readline()
     file_input.close()
+    # android separates date and sender by hyphen, ios not...
     return line[16] == "-" or line[18] == "-" or line[19] == "-"
 
-def is_second_row(line):
+def is_second_row_of_msg(line):
     try:
-        return (line[2] != "." and line[2] != "/") or (line[5] != "." and line[2] != "/") or (line[12] != ":" and line[11] != ":")
+        # it is an additional row if no date is available
+        return (line[2] != "." and line[2] != "/") or (line[5] != "." and line[5] != "/") or (line[12] != ":" and line[11] != ":")
     except:
         return True
-
-def initialize_html():
-    file_html = open(htmlname,"w", encoding="utf-8")
-    # Write start of html-file
-    head = f"""
-    <html>
-    <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <style>
-    * \u007B font-family: Arial, sans-serif; font-size: 14px; \u007D
-    .msg \u007B display: block; overflow-wrap: break-word; word-wrap: break-word; hyphens: auto; padding: 8px; border-radius: 5px; margin-bottom: 5px; \u007D
-    .general \u007B background-color: #CCCCCC; \u007D
-    .msg1 \u007B background-color: #{bg1}; color: #{text1} margin-right: 70px; \u007D
-    .msg2 \u007B background-color: #{bg2}; color: #{text2} margin-left: 70px; \u007D
-    .metadata \u007B font-size: 12px; color: #888888; font-style: italic; \u007D
-    .timestamp \u007B \u007D
-    .sender \u007B font-weight: bold; \u007D
-    .comment \u007B font-size: 12px; font-style: italic; \u007D
-    .divider \u007B font-size: 11px; color: #888888; border-top: solid 1px #888888; padding: 0px 0px 15px 10px; margin-top: 20px; \u007D
-    </style>
-    </head>
-    <body>
-
-    """
-    file_html.write(head)
-    file_html.close()
-
-def finish_html():
-    file_html = open(htmlname,"a", encoding="utf-8")
-    # Write end of html-file
-    foot = """
-    <br><br>
-    </body>
-    </html>"""
-    file_html.write(foot)
-    file_html.close()
 
 def get_divider(date):
 	return f"<div class='divider'>{date}</div>"
@@ -121,6 +91,32 @@ def get_ignored():
 
 def get_attachment():
 	return None
+
+def get_date_obj(date_string):
+    length = len(date_string)
+    format = ""
+    if date_string[3]=="." or date_string[2]==".":
+        if length == 15:
+            format = "%d.%m.%y %H:%M"
+        elif length == 18:
+            if date_string.lower().endswith("m"):
+                format = "%d.%m.%y %H:%M %p"
+            else:
+                format = "%d.%m.%y %H:%M:%S"
+    if date_string[3]=="/" or date_string[2]=="/":
+        if length == 15:
+            format = "%m/%d/%y %H:%M"
+        elif length == 18:
+            if date_string.lower().endswith("m"):
+                format = "%m/%d/%y %H:%M %p"
+            else:   
+                format = "%m/%d/%y %H:%M:%S"
+    if format=="":
+        return None
+    return datetime.strptime(date_string, '%d.%m.%y %H:%M:%S')
+
+def read_from_android(chatname):
+    pass
 
 def generate_from_android(chatname):
     print("[i] Chat seems to be from Android")
@@ -141,7 +137,7 @@ def generate_from_android(chatname):
         line = line.replace('\u200f', '')
         original_line = line
 
-        if is_second_row(line) and i>1 and result != "":
+        if is_second_row_of_msg(line) and i>1 and result != "":
             # Add line (= new line of previous message) to result & go to next line
             result += "<br>"+line
             if counter >= linecount:
@@ -247,6 +243,9 @@ def generate_from_android(chatname):
     file_input.close()
     file_html.close()
     return counter
+
+def read_from_ios(chatname):
+    pass
 
 def generate_from_ios(chatname):
     print("[i] Chat seems to be from iOS")
@@ -370,6 +369,43 @@ def generate_from_ios(chatname):
     file_html.close()
     return counter
 
+def generate_html(chatname):
+    htmlname = os.path.join(get_output_path(chatname), get_output_name(chatname))
+    # start of html
+    head = f"""
+    <html>
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style>
+    * \u007B font-family: Arial, sans-serif; font-size: 14px; \u007D
+    .msg \u007B display: block; overflow-wrap: break-word; word-wrap: break-word; hyphens: auto; padding: 8px; border-radius: 5px; margin-bottom: 5px; \u007D
+    .general \u007B background-color: #CCCCCC; \u007D
+    .msg1 \u007B background-color: #{bg1}; color: #{text1} margin-right: 70px; \u007D
+    .msg2 \u007B background-color: #{bg2}; color: #{text2} margin-left: 70px; \u007D
+    .metadata \u007B font-size: 12px; color: #888888; font-style: italic; \u007D
+    .timestamp \u007B \u007D
+    .sender \u007B font-weight: bold; \u007D
+    .comment \u007B font-size: 12px; font-style: italic; \u007D
+    .divider \u007B font-size: 11px; color: #888888; border-top: solid 1px #888888; padding: 0px 0px 15px 10px; margin-top: 20px; \u007D
+    </style>
+    </head>
+    <body>
+
+    """
+    # end of html
+    foot = """
+    <br><br>
+    </body>
+    </html>"""
+
+    # write html file
+    file_html = open(htmlname,"w", encoding="utf-8")
+    file_html.write(head)
+    for msg in message_list:
+         file_html.write(msg.to_string())
+    file_html.write(foot)
+    file_html.close()
+
 def has_file_extension(input):
     return os.path.splitext(input)[1]!=""
 
@@ -438,6 +474,9 @@ list of allowed audio formats separated by comma
 
 
 
+# init
+message_list = []
+
 # init default values
 bg1 = "CEE5D5"
 text1 = "000000"
@@ -474,16 +513,13 @@ try:
     # remove " & ' from path (prevents error while reading the file)
     chatname = chatname.replace("\"", "")
     chatname = chatname.replace("'", "")
-    htmlname = os.path.join(get_output_path(chatname), get_output_name(chatname))
 
     processed = 0
-    initialize_html()
     if is_android(chatname):
-        processed = generate_from_android(chatname)
+        processed = read_from_android(chatname)
     else:
-        processed = generate_from_ios(chatname)
-    finish_html()
-
+        processed = read_from_ios(chatname)
+    htmlname = generate_html(chatname)
     print(f"DONE! {processed} messages processed (check result in '{htmlname}')")
 
 except PathNotFoundException as exp:
