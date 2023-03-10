@@ -17,6 +17,10 @@ import os
 import argparse
 
 
+FORMAT_ANDROID = "Android"
+FORMAT_IOS = "iOS"
+
+
 class Message:
 	def __init__(self, timestamp: datetime, sender, message):
 		self.user_number = 0 # general, no user
@@ -71,34 +75,26 @@ def get_linecount(filename):
 	file_input.close()
 	return counter
 
-def is_android(chatname):
+def get_divider(date):
+	return f"<div class='divider'>{date}</div>"
+
+def check_format(chatname):
 	file_input = open(chatname, "r", encoding="utf-8")
 	line = file_input.readline()
 	file_input.close()
 	# android separates date and sender by hyphen, ios not...
-	return line[16] == "-" or line[18] == "-" or line[19] == "-"
+	if line[16] == "-" or line[18] == "-" or line[19] == "-":
+		return FORMAT_ANDROID
+	return FORMAT_IOS
 
-def is_second_row_of_msg(line):
+def is_second_row_of_msg(line, format):
 	try:
-		# it is an additional row if no date is available
+		if format == FORMAT_IOS:
+			return not line.startswith('[')
+		# android: it's an additional row if no date is available
 		return (line[2] != "." and line[2] != "/") or (line[5] != "." and line[5] != "/") or (line[12] != ":" and line[11] != ":")
 	except:
 		return True
-
-def get_divider(date):
-	return f"<div class='divider'>{date}</div>"
-
-def get_deleted():
-	return None
-
-def get_calls():
-	return None
-
-def get_ignored():
-	return None
-
-def get_attachment():
-	return None
 
 def get_date_obj(date_string):
 	length = len(date_string)
@@ -123,8 +119,44 @@ def get_date_obj(date_string):
 		return None
 	return datetime.strptime(date_string, '%d.%m.%y %H:%M:%S')
 
-def read_from_android(chatname):
-	print("[i] Chat seems to be from Android")
+def extract_timestamp(line, format):
+	if format==FORMAT_ANDROID:
+		pos_dash = line.find('-')
+		date_obj = get_date_obj(line[:pos_dash-1])
+		line = line[pos_dash+2:] # +1 dash, +1 blank
+		return (date_obj, line)
+	
+	# ios
+	pos_date_start = line.find('[')+1
+	pos_date_end = line.find(']')
+	date_obj = get_date_obj(line[pos_date_start:pos_date_end])
+	line = line[pos_date_end+2:] # +1 date end, +1 blank
+	return (date_obj, line)
+
+def extract_person(line, format):
+	# android and ios use the same format
+	pos_colon = line.find(':')
+	person_str = ""
+	if pos_colon > -1:
+		person_str = line[:pos_colon]
+	line = line[pos_colon+2:] # +1 colon / +1 blank
+	return (person_str, line)
+
+def get_deleted():
+	return None
+
+def get_calls():
+	return None
+
+def get_ignored():
+	return None
+
+def get_attachment():
+	return None
+
+
+def read_chat(chatname, format):
+	print(f"[i] Chat seems to be from {format}")
 	# Open files
 	file_input = open(chatname, "r", encoding="utf-8")
 	counter = 0
@@ -135,33 +167,26 @@ def read_from_android(chatname):
 		counter+=1
 		line = line.replace('\u200e', '')
 		line = line.replace('\u200f', '')
-		if not is_second_row_of_msg(line):
+		if not is_second_row_of_msg(line, format):
 			if current_msg != None:
 				# new message line found, add last message to message list
 				message_list.append(current_msg)
 			# extract timestamp
-			pos_dash = line.find('-')
-			date_obj = get_date_obj(line[:pos_dash-1])
-			# remove timestamp string
-			line = line[pos_dash+2:] # +1 dash, +1 blank
+			date_obj, line = extract_timestamp(line, format)
 			# extract person
-			pos_colon = line.find(':')
-			person_str = ""
-			if pos_colon > -1:
-				person_str = line[:pos_colon]
-				if first_person == "":
-					first_person = person_str
-				# remove person string
-				line = line[pos_colon+2:] # +1 colon / +1 blank
+			person_str, line = extract_person(line, format)
+			if person_str != "" and first_person == "":
+				first_person = person_str
+			# create message
 			current_msg = Message(date_obj, person_str, line)
 			current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
 		else:
 			current_msg.add_to_message(line)
 
-		# TODO: attachments
-
+		# TODO: attachments, etc.
 
 	file_input.close()
+	return counter
 
 def generate_from_android(chatname):
 	print("[i] Chat seems to be from Android")
@@ -288,47 +313,6 @@ def generate_from_android(chatname):
 	file_input.close()
 	file_html.close()
 	return counter
-
-def read_from_ios(chatname):
-	print("[i] Chat seems to be from iOS")
-	# Open files
-	file_input = open(chatname, "r", encoding="utf-8")
-	counter = 0
-	linecount = get_linecount(chatname)
-	first_person = ""
-	current_msg = None
-	for line in file_input:
-		counter+=1
-		line = line.replace('\u200e', '')
-		line = line.replace('\u200f', '')
-		if line.startswith('['): # not second line of message
-			if current_msg != None:
-				# new message line found, add last message to message list
-				message_list.append(current_msg)
-			# extract timestamp
-			pos_date_start = line.find('[')+1
-			pos_date_end = line.find(']')
-			date_obj = get_date_obj(line[pos_date_start:pos_date_end])
-			# remove timestamp string
-			line = line[pos_date_end+2:] # +1 date end, +1 blank
-			# extract person
-			pos_colon = line.find(':')
-			person_str = ""
-			if pos_colon > -1:
-				person_str = line[:pos_colon]
-				if first_person == "":
-					first_person = person_str
-				# remove person string
-				line = line[pos_colon+2:] # +1 colon / +1 blank
-			current_msg = Message(date_obj, person_str, line)
-			current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
-		else:
-			current_msg.add_to_message(line)
-
-		# TODO: attachments
-
-
-	file_input.close()
 
 def generate_from_ios(chatname):
 	print("[i] Chat seems to be from iOS")
@@ -492,6 +476,7 @@ def generate_html(chatname):
 		file_html.write(msg.to_html())
 	file_html.write(html_end)
 	file_html.close()
+	return htmlname
 
 def has_file_extension(input):
 	return os.path.splitext(input)[1]!=""
@@ -601,11 +586,7 @@ try:
 	chatname = chatname.replace("\"", "")
 	chatname = chatname.replace("'", "")
 
-	processed = 0
-	if is_android(chatname):
-		processed = read_from_android(chatname)
-	else:
-		processed = read_from_ios(chatname)
+	processed = read_chat(chatname, check_format(chatname))
 	htmlname = generate_html(chatname)
 	print(f"DONE! {processed} messages processed (check result in '{htmlname}')")
 
