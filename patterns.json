@@ -1,0 +1,20 @@
+{
+	"patterns": [
+		{
+			"format": "android",
+			"check_attachment": [],
+			"check_deleted": [],
+			"check_ignored": [],
+			"check_call": []
+		},
+		{
+			"format": "ios",
+			"check_attachment": [],
+			"check_deleted": [],
+			"check_ignored": [],
+			"check_call": []
+		}
+	]
+}
+
+

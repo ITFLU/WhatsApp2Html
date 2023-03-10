@@ -14,6 +14,8 @@ version = "1.0"
 from pathlib import Path
 from datetime import datetime
 import os
+import re
+import json
 import argparse
 
 
@@ -27,7 +29,7 @@ class Message:
 		self.timestamp = timestamp
 		self.sender = sender
 		self.message = message
-		self.attachment = ""
+		self.attachment_name = ""
 		self.comment = ""
 
 	def add_to_message(self, text):
@@ -36,8 +38,8 @@ class Message:
 	def set_user_number(self, user_number):
 		self.user_number = user_number
 	
-	def set_attachment(self, attachment):
-		self.attachment = attachment
+	def set_attachment_name(self, attachment_name):
+		self.attachment_name = attachment_name
 
 	def set_comment(self, comment):
 		self.comment = comment
@@ -49,14 +51,32 @@ class Message:
 		msg_class = "general"
 		if self.user_number > 0:
 			msg_class = f"msg{self.user_number}"
-		result = f"""
+
+		msg_text = self.message
+		if self.attachment_name != "":
+			msg_text = self.attachment_name
+		if self.comment != "":
+			msg_text = f"<div class='comment'>{self.comment}</div>"
+
+		ext = self.attachment_name[self.attachment_name.rfind('.')+1:]
+		if ext in images:
+			msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' height='200px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
+		else:
+			file_format = "DATEI"
+			if ext in videos:
+				file_format = "VIDEO"
+			elif ext in audios:
+				file_format = "AUDIO"
+			msg_text = f"{file_format}: <a href='{self.attachment_name}' target='_blank'>{self.attachment_name}</a>"
+
+		html_element = f"""
 		<div class='msg {msg_class}'>
 			<span class='metadata sender'>{self.sender}</span> - <span class='metadata timestamp'>{self.timestamp.strftime("%d.%m.%Y, %H:%M:%S")}</span><br>
-			{self.message}
+			{msg_text}
 		</div>
 		"""
-		
-		return result
+		return html_element
+
 
 class PathNotFoundException(Exception):
 	"""
@@ -64,6 +84,12 @@ class PathNotFoundException(Exception):
 	"""
 	def __init__(self, path):
 		self.message = f"Path '{path}' not found"
+class PatternsNotFoundException(Exception):
+	"""
+	error in case of a patterns file not found
+	"""
+	def __init__(self):
+		self.message = f"File with patterns (patterns.json) not found"
 
 
 
@@ -142,18 +168,29 @@ def extract_person(line, format):
 	line = line[pos_colon+2:] # +1 colon / +1 blank
 	return (person_str, line)
 
-def get_deleted():
+def extract_attachment(line):
+	for c in search_patterns["check_attachment"]:
+		match = re.search(c, line)
+		if match != None:
+			return ""
+		# TODO: return filename...
 	return None
 
-def get_calls():
-	return None
+def is_pattern_match(line, check_type):
+	for c in search_patterns[check_type]:
+		match = re.search(c, line)
+		if match != None:
+			return True
+	return False
 
-def get_ignored():
-	return None
-
-def get_attachment():
-	return None
-
+def check_for_message_comment(line):
+	if is_pattern_match(line, "check_deleted"):
+		return True
+	if is_pattern_match(line, "check_ignored"):
+		return True
+	if is_pattern_match(line, "check_call"):
+		return True
+	return False
 
 def read_chat(chatname, format):
 	print(f"[i] Chat seems to be from {format}")
@@ -180,10 +217,13 @@ def read_chat(chatname, format):
 			# create message
 			current_msg = Message(date_obj, person_str, line)
 			current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
+			attachment = extract_attachment(line, format)
+			if attachment != None:
+				current_msg.set_attachment_name(attachment)
+			if check_for_message_comment(line):
+				current_msg.set_comment(line)
 		else:
 			current_msg.add_to_message(line)
-
-		# TODO: attachments, etc.
 
 	file_input.close()
 	return counter
@@ -507,6 +547,20 @@ def get_output_path(inputname):
 		path = path+os.sep
 	return path
 
+def read_search_patterns(format):
+	result = {}
+	with open('patterns.json', 'r', encoding='utf-8') as d:
+		data = d.read()
+	patterns = json.loads(data)
+	for p in patterns["patterns"]:
+		if p["format"] == format.lower():
+			result["check_attachment"] = p["check_attachment"]
+			result["check_deleted"] = p["check_deleted"]
+			result["check_ignored"] = p["check_ignored"]
+			result["check_call"] = p["check_call"]
+			break
+	return result
+
 def configure_argparse():
 	global args
 	parser = argparse.ArgumentParser(prog="wa2h-cli", 
@@ -548,6 +602,7 @@ list of allowed audio formats separated by comma
 
 # init
 message_list = []
+search_patterns = {}
 
 # init default values
 bg1 = "CEE5D5"
@@ -586,11 +641,17 @@ try:
 	chatname = chatname.replace("\"", "")
 	chatname = chatname.replace("'", "")
 
-	processed = read_chat(chatname, check_format(chatname))
+	used_format = check_format(chatname)
+	search_patterns = read_search_patterns(used_format)
+	processed = read_chat(chatname, used_format)
 	htmlname = generate_html(chatname)
 	print(f"DONE! {processed} messages processed (check result in '{htmlname}')")
 
 except PathNotFoundException as exp:
+	print()
+	print("[!] Processing aborted!")
+	print(">", exp.message)
+except PatternsNotFoundException as exp:
 	print()
 	print("[!] Processing aborted!")
 	print(">", exp.message)
