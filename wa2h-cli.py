@@ -19,16 +19,18 @@ import argparse
 
 class Message:
 	def __init__(self, timestamp: datetime, sender, message):
+		self.user_number = 0 # general, no user
 		self.timestamp = timestamp
-		self.date_obj = None
 		self.sender = sender
 		self.message = message
 		self.attachment = ""
 		self.comment = ""
-		self.gui_class = ""
 
 	def add_to_message(self, text):
-		self.message += text
+		self.message += f"<br>{text}"
+
+	def set_user_number(self, user_number):
+		self.user_number = user_number
 	
 	def set_attachment(self, attachment):
 		self.attachment = attachment
@@ -36,15 +38,21 @@ class Message:
 	def set_comment(self, comment):
 		self.comment = comment
 
-	def set_gui_class(self, classname):
-		self.gui_class = classname
-
 	def get_date_string(self):
 		return self.timestamp.strftime("%d.%m.%Y")
 
-	def to_string(self):
-		pass
-
+	def to_html(self):
+		msg_class = "general"
+		if self.user_number > 0:
+			msg_class = f"msg{self.user_number}"
+		result = f"""
+		<div class='msg {msg_class}'>
+			<span class='metadata sender'>{self.sender}</span> - <span class='metadata timestamp'>{self.timestamp.strftime("%d.%m.%Y, %H:%M:%S")}</span><br>
+			{self.message}
+		</div>
+		"""
+		
+		return result
 
 class PathNotFoundException(Exception):
 	"""
@@ -97,26 +105,63 @@ def get_date_obj(date_string):
 	format = ""
 	if date_string[3]=="." or date_string[2]==".":
 		if length == 15:
-			format = "%d.%m.%y %H:%M"
+			format = "%d.%m.%y, %H:%M"
 		elif length == 18:
 			if date_string.lower().endswith("m"):
-				format = "%d.%m.%y %H:%M %p"
+				format = "%d.%m.%y, %H:%M %p"
 			else:
-				format = "%d.%m.%y %H:%M:%S"
+				format = "%d.%m.%y, %H:%M:%S"
 	if date_string[3]=="/" or date_string[2]=="/":
 		if length == 15:
-			format = "%m/%d/%y %H:%M"
+			format = "%m/%d/%y, %H:%M"
 		elif length == 18:
 			if date_string.lower().endswith("m"):
-				format = "%m/%d/%y %H:%M %p"
+				format = "%m/%d/%y, %H:%M %p"
 			else:   
-				format = "%m/%d/%y %H:%M:%S"
+				format = "%m/%d/%y, %H:%M:%S"
 	if format=="":
 		return None
 	return datetime.strptime(date_string, '%d.%m.%y %H:%M:%S')
 
 def read_from_android(chatname):
-	pass
+	print("[i] Chat seems to be from Android")
+	# Open files
+	file_input = open(chatname, "r", encoding="utf-8")
+	counter = 0
+	linecount = get_linecount(chatname)
+	first_person = ""
+	current_msg = None
+	for line in file_input:
+		counter+=1
+		line = line.replace('\u200e', '')
+		line = line.replace('\u200f', '')
+		if not is_second_row_of_msg(line):
+			if current_msg != None:
+				# new message line found, add last message to message list
+				message_list.append(current_msg)
+			# extract timestamp
+			pos_dash = line.find('-')
+			date_obj = get_date_obj(line[:pos_dash-1])
+			# remove timestamp string
+			line = line[pos_dash+2:] # +1 dash, +1 blank
+			# extract person
+			pos_colon = line.find(':')
+			person_str = ""
+			if pos_colon > -1:
+				person_str = line[:pos_colon]
+				if first_person == "":
+					first_person = person_str
+				# remove person string
+				line = line[pos_colon+2:] # +1 colon / +1 blank
+			current_msg = Message(date_obj, person_str, line)
+			current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
+		else:
+			current_msg.add_to_message(line)
+
+		# TODO: attachments
+
+
+	file_input.close()
 
 def generate_from_android(chatname):
 	print("[i] Chat seems to be from Android")
@@ -245,7 +290,45 @@ def generate_from_android(chatname):
 	return counter
 
 def read_from_ios(chatname):
-	pass
+	print("[i] Chat seems to be from iOS")
+	# Open files
+	file_input = open(chatname, "r", encoding="utf-8")
+	counter = 0
+	linecount = get_linecount(chatname)
+	first_person = ""
+	current_msg = None
+	for line in file_input:
+		counter+=1
+		line = line.replace('\u200e', '')
+		line = line.replace('\u200f', '')
+		if line.startswith('['): # not second line of message
+			if current_msg != None:
+				# new message line found, add last message to message list
+				message_list.append(current_msg)
+			# extract timestamp
+			pos_date_start = line.find('[')+1
+			pos_date_end = line.find(']')
+			date_obj = get_date_obj(line[pos_date_start:pos_date_end])
+			# remove timestamp string
+			line = line[pos_date_end+2:] # +1 date end, +1 blank
+			# extract person
+			pos_colon = line.find(':')
+			person_str = ""
+			if pos_colon > -1:
+				person_str = line[:pos_colon]
+				if first_person == "":
+					first_person = person_str
+				# remove person string
+				line = line[pos_colon+2:] # +1 colon / +1 blank
+			current_msg = Message(date_obj, person_str, line)
+			current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
+		else:
+			current_msg.add_to_message(line)
+
+		# TODO: attachments
+
+
+	file_input.close()
 
 def generate_from_ios(chatname):
 	print("[i] Chat seems to be from iOS")
@@ -372,7 +455,7 @@ def generate_from_ios(chatname):
 def generate_html(chatname):
 	htmlname = os.path.join(get_output_path(chatname), get_output_name(chatname))
 	# start of html
-	head = f"""
+	html_start = f"""
 	<html>
 	<head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -393,17 +476,21 @@ def generate_html(chatname):
 
 	"""
 	# end of html
-	foot = """
+	html_end = """
 	<br><br>
 	</body>
 	</html>"""
 
 	# write html file
 	file_html = open(htmlname,"w", encoding="utf-8")
-	file_html.write(head)
+	file_html.write(html_start)
+	current_date = ""
 	for msg in message_list:
-		file_html.write(msg.to_string())
-	file_html.write(foot)
+		if current_date == "" or msg.get_date_string() != current_date:
+			file_html.write(get_divider(msg.get_date_string()))
+			current_date = msg.get_date_string()
+		file_html.write(msg.to_html())
+	file_html.write(html_end)
 	file_html.close()
 
 def has_file_extension(input):
