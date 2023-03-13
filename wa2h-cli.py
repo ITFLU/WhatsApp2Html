@@ -55,23 +55,23 @@ class Message:
 		msg_text = self.message
 		if self.attachment_name != "":
 			msg_text = self.attachment_name
+			ext = self.attachment_name[self.attachment_name.rfind('.')+1:]
+			if ext in images:
+				msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' height='200px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
+			else:
+				file_format = "DATEI"
+				if ext in videos:
+					file_format = "VIDEO"
+				elif ext in audios:
+					file_format = "AUDIO"
+				msg_text = f"{file_format}: <a href='{self.attachment_name}' target='_blank'>{self.attachment_name}</a>"
 		if self.comment != "":
 			msg_text = f"<div class='comment'>{self.comment}</div>"
 
-		ext = self.attachment_name[self.attachment_name.rfind('.')+1:]
-		if ext in images:
-			msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' height='200px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
-		else:
-			file_format = "DATEI"
-			if ext in videos:
-				file_format = "VIDEO"
-			elif ext in audios:
-				file_format = "AUDIO"
-			msg_text = f"{file_format}: <a href='{self.attachment_name}' target='_blank'>{self.attachment_name}</a>"
-
+		sender_element = f"<span class='metadata sender'>{self.sender}</span> - " if self.sender != "" else ""
 		html_element = f"""
 		<div class='msg {msg_class}'>
-			<span class='metadata sender'>{self.sender}</span> - <span class='metadata timestamp'>{self.timestamp.strftime("%d.%m.%Y, %H:%M:%S")}</span><br>
+			{sender_element}<span class='metadata timestamp'>{self.timestamp.strftime("%d.%m.%Y, %H:%M:%S")}</span><br>
 			{msg_text}
 		</div>
 		"""
@@ -121,29 +121,24 @@ def is_second_row_of_msg(line, format):
 		return (line[2] != "." and line[2] != "/") or (line[5] != "." and line[5] != "/") or (line[12] != ":" and line[11] != ":")
 	except:
 		return True
+	
+def get_date_format():
+	pass
 
 def get_date_obj(date_string):
-	length = len(date_string)
-	format = ""
-	if date_string[3]=="." or date_string[2]==".":
-		if length == 15:
-			format = "%d.%m.%y, %H:%M"
-		elif length == 18:
-			if date_string.lower().endswith("m"):
-				format = "%d.%m.%y, %H:%M %p"
-			else:
-				format = "%d.%m.%y, %H:%M:%S"
-	if date_string[3]=="/" or date_string[2]=="/":
-		if length == 15:
-			format = "%m/%d/%y, %H:%M"
-		elif length == 18:
-			if date_string.lower().endswith("m"):
-				format = "%m/%d/%y, %H:%M %p"
-			else:   
-				format = "%m/%d/%y, %H:%M:%S"
-	if format=="":
+	if date_string[1]=="." or date_string[2]==".":
+		date_format = "%d.%m.%y"
+	elif date_string[1]=="/" or date_string[2]=="/":
+		date_format = "%m/%d/%y"
+	else:
 		return None
-	return datetime.strptime(date_string, '%d.%m.%y %H:%M:%S')
+
+	format = f"{date_format}, %H:%M"
+	if date_string.count(':') == 2:
+		format = f"{format}:%S"
+	if date_string.lower().endswith("m"):
+		format = f"{format} %p"
+	return datetime.strptime(date_string, format)
 
 def extract_timestamp(line, format):
 	if format==FORMAT_ANDROID:
@@ -165,20 +160,25 @@ def extract_person(line, format):
 	person_str = ""
 	if pos_colon > -1:
 		person_str = line[:pos_colon]
-	line = line[pos_colon+2:] # +1 colon / +1 blank
+		line = line[pos_colon+2:] # +1 colon, +1 blank
 	return (person_str, line)
 
 def extract_attachment(line):
+	line = line.rstrip()
 	for c in search_patterns["check_attachment"]:
-		match = re.search(c, line)
+		match = re.search(c, line, re.IGNORECASE)
 		if match != None:
-			return ""
-		# TODO: return filename...
+			if c.startswith("\\A"):
+				result = line[len(c)-3:] # -3 pattern
+			elif c.endswith("\\Z"):
+				result = line[:-(len(c)-3)+1] # -3 pattern, +1 position start by 0
+			return result
 	return None
 
 def is_pattern_match(line, check_type):
+	line = line.rstrip()
 	for c in search_patterns[check_type]:
-		match = re.search(c, line)
+		match = re.search(c, line, re.IGNORECASE)
 		if match != None:
 			return True
 	return False
@@ -196,18 +196,24 @@ def read_chat(chatname, format):
 	print(f"[i] Chat seems to be from {format}")
 	# Open files
 	file_input = open(chatname, "r", encoding="utf-8")
-	counter = 0
+	counter_line = 0
+	counter_msg = 0
 	linecount = get_linecount(chatname)
 	first_person = ""
 	current_msg = None
 	for line in file_input:
-		counter+=1
+		counter_line+=1
+		# remove problematic characters
 		line = line.replace('\u200e', '')
 		line = line.replace('\u200f', '')
 		if not is_second_row_of_msg(line, format):
 			if current_msg != None:
 				# new message line found, add last message to message list
 				message_list.append(current_msg)
+			counter_msg+=1
+			if message_limit > 0 and counter_msg > message_limit:
+				# defined limit reached > cancel processing
+				break
 			# extract timestamp
 			date_obj, line = extract_timestamp(line, format)
 			# extract person
@@ -216,8 +222,9 @@ def read_chat(chatname, format):
 				first_person = person_str
 			# create message
 			current_msg = Message(date_obj, person_str, line)
-			current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
-			attachment = extract_attachment(line, format)
+			if person_str != "":
+				current_msg.set_user_number(1) if person_str == first_person else current_msg.set_user_number(2)
+			attachment = extract_attachment(line)
 			if attachment != None:
 				current_msg.set_attachment_name(attachment)
 			if check_for_message_comment(line):
@@ -226,255 +233,7 @@ def read_chat(chatname, format):
 			current_msg.add_to_message(line)
 
 	file_input.close()
-	return counter
-
-def generate_from_android(chatname):
-	print("[i] Chat seems to be from Android")
-	# Open files
-	file_input = open(chatname, "r", encoding="utf-8")
-	file_html = open(htmlname,"a", encoding="utf-8")
-	# init counters & flags
-	i = 0
-	day = ""
-	firstPerson = "?"
-	result = ""
-	counter = 0
-	linecount = get_linecount(chatname)
-	for line in file_input:
-		counter+=1
-		i+=1
-		line = line.replace('\u200e', '')
-		line = line.replace('\u200f', '')
-		original_line = line
-
-		if is_second_row_of_msg(line) and i>1 and result != "":
-			# Add line (= new line of previous message) to result & go to next line
-			result += "<br>"+line
-			if counter >= linecount:
-				# close last entry & write it to the file
-				result += "</div>"
-				# new day >> date divider
-				if date != day:
-					file_html.write(get_divider(date))
-					day = date
-				file_html.write(result)
-			continue
-		elif i>1:
-			# close previous entry & write it to the file
-			result += "</div>"
-			# new day >> date divider
-			if date != day:
-				file_html.write(get_divider(date))
-				day = date
-			file_html.write(result)
-
-		# cut date
-		posDash = line.find('-')
-		dateBase = line[:posDash-1]
-		date = dateBase[:8]
-		datetime = dateBase[:posDash]
-		line = line[posDash+2:]
-
-		result = ""
-		if original_line.startswith('['):
-			line = line.replace('[', '')
-			line = line.replace(']', ':')
-
-		# person & date
-		person = "?"
-		posColon = line.find(':')
-		if posColon > -1:
-			person = line[:posColon]
-			line = line[posColon+2:] # +1 = ':' / +1 = ' '
-		else:
-			i = 0
-			result += f"<div class='msg general'>{line}</div>"
-			file_html.write(result)
-			continue
-		# start of entry
-		if i==1:
-			firstPerson = person
-		if person == firstPerson:
-			# first person >> entry on left side
-			result += "<div class='msg msg1'>"
-		else:
-			# second person >> entry on right side
-			result += "<div class='msg msg2'>"
-		result += f"<span class='metadata sender'>{person}</span> - "
-		result += f"<span class='metadata timestamp'>{datetime}</span><br>"
-		# message
-		if line.endswith(' angehängt)', 0, -1) or line.endswith(' attached)', 0, -1): # -1 = '\n'
-			# attachment
-			filename = line[:-19]
-			if line.endswith(' attached)', 0, -1):
-				filename = line[:-17]
-			ext = filename[filename.rfind('.')+1:]
-			if ext in images:
-				# image
-				result += f"<a href='{filename}' target='_blank'>"
-				result += f"<img src='{filename}' height='200px'></a>"
-				result += f"&nbsp;&nbsp;<span class='comment'>{filename}</span>"
-			elif ext in videos:
-				# video
-				result += f"VIDEO: <a href='{filename}' target='_blank'>{filename}</a>"
-			elif ext in audios:
-				# audio
-				result += f"AUDIO: <a href='{filename}' target='_blank'>{filename}</a>"
-			else:
-				# different files
-				result += f"DATEI: <a href='{filename}' target='_blank'>{filename}</a>"
-		else:
-			# ignored attachments
-			if line.endswith(' weggelassen', 0, -1): # -1 = '\n'
-				result += f"<span class='comment'>{line}</span>"
-			else:
-				# deleted messages
-				if line.endswith(' wurde gelöscht.', 0, -1): # -1 = '\n'
-					result += f"<span class='comment'>{line}</span>"
-				else:
-					# missed call
-					if line.endswith(' Videoanruf', 0, -1) or line.endswith(' Sprachanruf', 0, -1): # -1 = '\n'
-						result += f"<span class='comment'>{line}</span>"
-					else:
-						# text message
-						result += line
-
-
-		if counter >= linecount:
-			# close last entry & write it to the file
-			result += "</div>"
-			# new day >> date divider
-			if date != day:
-				file_html.write(get_divider(date))
-				day = date
-			file_html.write(result)
-
-	# Close files
-	file_input.close()
-	file_html.close()
-	return counter
-
-def generate_from_ios(chatname):
-	print("[i] Chat seems to be from iOS")
-	# Open files
-	file_input = open(chatname, "r", encoding="utf-8")
-	file_html = open(htmlname,"a", encoding="utf-8")
-	# init counters & flags
-	i = 0
-	day = ""
-	firstPerson = "?"
-	result = ""
-	counter = 0
-	linecount = get_linecount(chatname)
-	for line in file_input:
-		counter+=1
-		i+=1
-		line = line.replace('\u200e', '')
-		line = line.replace('\u200f', '')
-		original_line = line
-
-		if not line.startswith('[') and i>1 and result != "":
-			# Add line (= new line of previous message) to result & go to next line
-			result += "<br>"+line
-			if counter >= linecount:
-				# close last entry & write it to the file
-				result += "</div>"
-				# new day >> date divider
-				if date != day:
-					file_html.write(get_divider(date))
-					day = date
-				file_html.write(result)
-			continue
-		elif i>1:
-			# close previous entry & write it to the file
-			result += "</div>"
-			# new day >> date divider
-			if date != day:
-				file_html.write(get_divider(date))
-				day = date
-			file_html.write(result)
-
-		# cut date
-		posDateStart = line.find('[')+1
-		posDateEnd = line.find(']')
-		dateBase = line[posDateStart:posDateEnd]
-		date = dateBase[:8]
-		datetime = dateBase[:posDateEnd]
-		line = line[posDateEnd+2:]
-
-		result = ""
-		if original_line.startswith('['):
-			line = line.replace('[', '')
-			line = line.replace(']', ':')
-
-		# person & date
-		person = "?"
-		posColon = line.find(':')
-		if posColon > -1:
-			person = line[:posColon]
-			line = line[posColon+2:] # +1 = ':' / +1 = ' '
-		else:
-			i = 0
-			continue
-		# start of entry
-		if i==1:
-			firstPerson = person
-		if person == firstPerson:
-			# first person >> entry on left side
-			result += "<div class='msg msg1'>"
-		else:
-			# second person >> entry on right side
-			result += "<div class='msg msg2'>"
-		result += f"<span class='metadata sender'>{person}</span> - "
-		result += f"<span class='metadata timestamp'>{datetime}</span><br>"
-		# message
-		if line.lstrip().startswith('<Anhang:'):
-			# attachment
-			filename = line[9:-2]
-			ext = filename[filename.rfind('.')+1:]
-			if ext in images:
-				# image
-				result += f"<a href='{filename}' target='_blank'>"
-				result += f"<img src='{filename}' style='max-height:{pic_height}px;max-width:{pic_width}px;'></a>"
-				result += f"&nbsp;&nbsp;<span class='comment'>{filename}</span>"
-			elif ext in videos:
-				# video
-				result += f"VIDEO: <a href='{filename}' target='_blank'>{filename}</a>"
-			elif ext in audios:
-				# audio
-				result += f"AUDIO: <a href='{filename}' target='_blank'>{filename}</a>"
-			else:
-				# different files
-				result += f"DATEI: <a href='{filename}' target='_blank'>{filename}</a>"
-		else:
-			# ignored attachments
-			if line.endswith(' weggelassen', 0, -1): # -1 = '\n'
-				result += f"<span class='comment'>{line}</span>"
-			else:
-				# deleted messages
-				if line.endswith(' wurde gelöscht.', 0, -1): # -1 = '\n'
-					result += f"<span class='comment'>{line}</span>"
-				else:
-					# missed call
-					if line.endswith(' Videoanruf', 0, -1) or line.endswith(' Sprachanruf', 0, -1): # -1 = '\n'
-						result += f"<span class='comment'>{line}</span>"
-					else:
-						# text message
-						result += line
-
-		if counter >= linecount:
-			# close last entry & write it to the file
-			result += "</div>"
-			# new day >> date divider
-			if date != day:
-				file_html.write(get_divider(date))
-				day = date
-			file_html.write(result)
-
-	# Close files
-	file_input.close()
-	file_html.close()
-	return counter
+	return counter_msg
 
 def generate_html(chatname):
 	htmlname = os.path.join(get_output_path(chatname), get_output_name(chatname))
@@ -487,8 +246,8 @@ def generate_html(chatname):
 	* \u007B font-family: Arial, sans-serif; font-size: 14px; \u007D
 	.msg \u007B display: block; overflow-wrap: break-word; word-wrap: break-word; hyphens: auto; padding: 8px; border-radius: 5px; margin-bottom: 5px; \u007D
 	.general \u007B background-color: #CCCCCC; \u007D
-	.msg1 \u007B background-color: #{bg1}; color: #{text1} margin-right: 70px; \u007D
-	.msg2 \u007B background-color: #{bg2}; color: #{text2} margin-left: 70px; \u007D
+	.msg1 \u007B background-color: #{bg1}; color: #{text1}; margin-right: 70px; \u007D
+	.msg2 \u007B background-color: #{bg2}; color: #{text2}; margin-left: 70px; \u007D
 	.metadata \u007B font-size: 12px; color: #888888; font-style: italic; \u007D
 	.timestamp \u007B \u007D
 	.sender \u007B font-weight: bold; \u007D
@@ -609,7 +368,7 @@ bg1 = "CEE5D5"
 text1 = "000000"
 bg2 = "CFDAE5"
 text2 = "000000"
-limit = 0 # 0 = no limit
+message_limit = 0 # 0 = no limit
 pic_width = 700
 pic_height = 200
 images = ['jpg' , 'jpeg', 'gif', 'png', 'webp']
@@ -626,7 +385,7 @@ try:
 	text1 = args.text1 if args.text1 else text1
 	bg2 = args.bg2 if args.bg2 else bg2
 	text2 = args.text2 if args.text2 else text2
-	limit = args.l if args.l else limit
+	message_limit = args.l if args.l else message_limit
 	pic_width = args.pw if args.pw else pic_width
 	pic_height = args.ph if args.ph else pic_height
 	if args.images:
@@ -658,5 +417,3 @@ except PatternsNotFoundException as exp:
 except (FileNotFoundError):
 	print("[!] Processing aborted!")
 	print(f"> File '{chatname}' not found")
-
-input("")

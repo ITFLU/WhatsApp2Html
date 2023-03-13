@@ -2,17 +2,36 @@
 	"patterns": [
 		{
 			"format": "android",
-			"check_attachment": [],
-			"check_deleted": [],
-			"check_ignored": [],
-			"check_call": []
+			"check_attachment": [
+				" \\(Datei angehängt\\)\\Z",
+				" \\(File attached\\)\\Z"
+			],
+			"check_deleted": [
+				" wurde gelöscht\\Z"
+			],
+			"check_ignored": [
+				" weggelassen\\Z"
+			],
+			"check_call": [
+				" Videoanruf\\Z",
+				" Sprachanruf\\Z"
+			]
 		},
 		{
 			"format": "ios",
-			"check_attachment": [],
-			"check_deleted": [],
-			"check_ignored": [],
-			"check_call": []
+			"check_attachment": [
+				"\\A<Anhang:"
+			],
+			"check_deleted": [
+				" wurde gelöscht\\Z"
+			],
+			"check_ignored": [
+				" weggelassen\\Z"
+			],
+			"check_call": [
+				" Videoanruf\\Z",
+				" Sprachanruf\\Z"
+			]
 		}
 	]
 }

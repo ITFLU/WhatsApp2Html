@@ -1,5 +1,14 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.0 - 13.03.2023
+Umstellung auf CLI-Version und "UI" für Standardfälle
+- Feature: Möglichkeit zur Definition der gewünschten Farben
+- Feature: Möglichkeit zum Definition der maximalen Bildbreite und -Höhe
+- Feature: Möglichkeit zum Definition der unterstützten Image-, Video- & Audio-Extensions
+- Feature: Möglichkeit zur Definition des Ergebnispfads bzw. der Ergebnidatei
+- Feature: Möglichkeit zur Einschränkung der Umwandlung auf eine bestimmte Anzahl Messages
+- Feature: Erkennung der Attachments ond Kommentarfelder via Regex ab patterns.json
+
 ## 23.02.2023
 - Generiertes HTML von Table auf DIVs umgestellt... Word-Wrap kann nun bei langen Texten erzwungen werden.
 
