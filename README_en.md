@@ -1,40 +1,40 @@
 # WhatsApp2Html
 
-> For english version visit `README_en.md`
+> Für die Version in Deutsch bitte `README.md` konsultieren
 
-## Überblick
+## Overview
 
-Generiert aus einem exportierten WhatsApp-Chat eine HTML-Ansicht (Chatview inkl. Attachments)
-
-
-## Export aus WhatsApp
-
-Besagte Chatdaten können aus WhatsApp vom entsprechenden Gerät exportiert werden.
-- Chat öffnen
-- Chatinformationen öffnen
-- Funktion "Chat exportieren" wählen
-- Funktion "Medien hinzufügen" wählen, wenn auch die Mediendateien (Audio, Video, Bilder, etc.) exportiert werden sollen
+Generates an HTML view from an exported WhatsApp chat (Chatview including attachments)
 
 
-## Verwendung
+## Export from WhatsApp
 
-### Ausführung Standardfall
+Chats data can be exported from WhatsApp from the corresponding device.
+- Open chat
+- Open contact info view
+- Choose function "Export Chat"
+- Choose funtion "Attach Media" if the mediafiles (audio, video, pictures, etc.) should be exported too
 
-1. *WhatsApp2Html.py* doppelklicken
-2. Name der zu verarbeitenden Chat-Datei angeben oder via Drag-n-Drop hineinziehen
-3. Das Ergebnis wird im Verzeichnis der angegebenen Chat-Datei mit demselben Namen als HTML erstellt
 
-> Die generierte html-Datei muss im selben Verzeichnis wie die Attachments verbleiben, wenn diese in der HTML-Ansicht angezeigt werden sollen.
+## Usage
 
-### Ausführung via CLI
+### Default case
 
-In der Kommandozeile kann eine Chat-Datei folgendermassen verarbeitet werden:
+1. Double click on *WhatsApp2Html.py*
+2. Define the name of the chat file to analyze or drop it with drag-n-drop in the console
+3. The result file will be created in the same location of the csv file with the same name in HTML format
+
+> The generated html file must remain in the same directory as the attachments if they are to be displayed in HTML view.
+
+### Usage in command line
+
+A CSV file can be processed in the command line as follows:
 
 `python wa2h-cli.py {chat-datei}`
 
-Dabei kann die Datei auch mittels Drag-n-Drop in die Kommandozeile gezogen werden. Mit Hilfe der Optionen können diverse Anpassungen bei der Verarbeitung vorgenommen werden.
+The file can also be dropped with drag-n-drop in the console. Different configurations can be done via options.
 
-Folgende Optionen stehen zur Verfügung (Hilfe mittels Option `-h` aufrufbar):
+The following options are available (help can be called with the `-h` option):
 
 ```
 usage: wa2h-cli [options] file
@@ -78,13 +78,13 @@ optional arguments:
                      (default: mp3, opus, wav, m4a, wma)
 ```
 
-**Beispiele:**
+**Examples:**
 
-- Chat-Ansicht mit anderen Farben erstellen
+- Generate a chatview with different new colors
 
   `python wa2h-cli.py chat.txt --bg1 FFAA00 --bg2 336699 --text2 FFFFFF`
 
-- Chat-Ansicht mit US-Datenformat und Bilder in einer Maximal-Breite von 1000 Pixeln erstellen
+- Generate a chatview with us date format and pictures with a maximum width of 1000px
 
   `python wa2h-cli.py chat.txt -t "%m/%d/%y, %I:%M %p" -pw 1000`
 
