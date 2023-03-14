@@ -28,12 +28,12 @@ class Message:
 		self.user_number = 0 # general, no user
 		self.timestamp = timestamp
 		self.sender = sender
-		self.message = message
+		self.message = self.convert_text(message)
 		self.attachment_name = ""
 		self.comment = ""
 
 	def add_to_message(self, text):
-		self.message += f"<br>{text}"
+		self.message += f"<br>{self.convert_text(text)}"
 
 	def set_user_number(self, user_number):
 		self.user_number = user_number
@@ -42,12 +42,17 @@ class Message:
 		self.attachment_name = attachment_name
 
 	def set_comment(self, comment):
-		self.comment = comment
+		self.comment = self.convert_text(comment)
 
 	def get_date_string(self):
 		return self.timestamp.strftime("%d.%m.%Y")
 
-	def to_html(self):
+	def convert_text(self, text):
+		sanitized = text.replace('<', '&lt;')
+		sanitized = sanitized.replace('>', '&gt;')
+		return sanitized
+	
+	def to_html(self, timestamp_format):
 		msg_class = "general"
 		if self.user_number > 0:
 			msg_class = f"msg{self.user_number}"
@@ -57,7 +62,7 @@ class Message:
 			msg_text = self.attachment_name
 			ext = self.attachment_name[self.attachment_name.rfind('.')+1:]
 			if ext in images:
-				msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' height='200px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
+				msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' style='max-height:{pic_height}px;max-width:{pic_width}px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
 			else:
 				file_format = "DATEI"
 				if ext in videos:
@@ -71,7 +76,7 @@ class Message:
 		sender_element = f"<span class='metadata sender'>{self.sender}</span> - " if self.sender != "" else ""
 		html_element = f"""
 		<div class='msg {msg_class}'>
-			{sender_element}<span class='metadata timestamp'>{self.timestamp.strftime("%d.%m.%Y, %H:%M:%S")}</span><br>
+			{sender_element}<span class='metadata timestamp'>{self.timestamp.strftime(timestamp_format)}</span><br>
 			{msg_text}
 		</div>
 		"""
@@ -90,28 +95,17 @@ class PatternsNotFoundException(Exception):
 	"""
 	def __init__(self):
 		self.message = f"File with patterns (patterns.json) not found"
+class UnknownDateFormatException(Exception):
+	"""
+	error in case of date format could not be identified
+	"""
+	def __init__(self, date_string):
+		self.message = f"Date format could not be identified ('{date_string}')"
 
 
-
-def get_linecount(filename):
-	counter = 0
-	file_input = open(filename, "r", encoding="utf-8")
-	for line in file_input:
-		counter += 1
-	file_input.close()
-	return counter
 
 def get_divider(date):
 	return f"<div class='divider'>{date}</div>"
-
-def check_format(chatname):
-	file_input = open(chatname, "r", encoding="utf-8")
-	line = file_input.readline()
-	file_input.close()
-	# android separates date and sender by hyphen, ios not...
-	if line[16] == "-" or line[18] == "-" or line[19] == "-":
-		return FORMAT_ANDROID
-	return FORMAT_IOS
 
 def is_second_row_of_msg(line, format):
 	try:
@@ -122,36 +116,23 @@ def is_second_row_of_msg(line, format):
 	except:
 		return True
 	
-def get_date_format():
-	pass
-
-def get_date_obj(date_string):
-	if date_string[1]=="." or date_string[2]==".":
-		date_format = "%d.%m.%y"
-	elif date_string[1]=="/" or date_string[2]=="/":
-		date_format = "%m/%d/%y"
-	else:
-		return None
-
-	format = f"{date_format}, %H:%M"
-	if date_string.count(':') == 2:
-		format = f"{format}:%S"
-	if date_string.lower().endswith("m"):
-		format = f"{format} %p"
-	return datetime.strptime(date_string, format)
-
-def extract_timestamp(line, format):
+def get_timestamp_string(line, format):
 	if format==FORMAT_ANDROID:
 		pos_dash = line.find('-')
-		date_obj = get_date_obj(line[:pos_dash-1])
-		line = line[pos_dash+2:] # +1 dash, +1 blank
-		return (date_obj, line)
-	
+		return line[:pos_dash-1]
 	# ios
 	pos_date_start = line.find('[')+1
 	pos_date_end = line.find(']')
-	date_obj = get_date_obj(line[pos_date_start:pos_date_end])
-	line = line[pos_date_end+2:] # +1 date end, +1 blank
+	return line[pos_date_start:pos_date_end]
+
+def extract_timestamp(line, format):
+	# ios
+	pos_timestamp_end = line.find(']')
+	if format==FORMAT_ANDROID:
+		pos_timestamp_end = line.find('-')
+	
+	date_obj = datetime.strptime(get_timestamp_string(line, format), date_format)
+	line = line[pos_timestamp_end+2:] # +1 date end, +1 blank
 	return (date_obj, line)
 
 def extract_person(line, format):
@@ -164,14 +145,21 @@ def extract_person(line, format):
 	return (person_str, line)
 
 def extract_attachment(line):
-	line = line.rstrip()
+	line = line.strip()
 	for c in search_patterns["check_attachment"]:
 		match = re.search(c, line, re.IGNORECASE)
 		if match != None:
 			if c.startswith("\\A"):
-				result = line[len(c)-3:] # -3 pattern
+				result = line[len(c)-2+1:] # -2 pattern (\\ counts as 1), +1 position starts by 0
 			elif c.endswith("\\Z"):
-				result = line[:-(len(c)-3)+1] # -3 pattern, +1 position start by 0
+				result = line[:-(len(c)-3)+1] # -3 pattern, +1 position starts by 0
+			else:
+				result = line[len(c)+1:] # +1 position starts by 0
+			# remove brackets
+			result = result.replace('<', '')
+			result = result.replace('>', '')
+			result = result.replace('(', '')
+			result = result.replace(')', '')
 			return result
 	return None
 
@@ -198,7 +186,6 @@ def read_chat(chatname, format):
 	file_input = open(chatname, "r", encoding="utf-8")
 	counter_line = 0
 	counter_msg = 0
-	linecount = get_linecount(chatname)
 	first_person = ""
 	current_msg = None
 	for line in file_input:
@@ -213,6 +200,7 @@ def read_chat(chatname, format):
 			counter_msg+=1
 			if message_limit > 0 and counter_msg > message_limit:
 				# defined limit reached > cancel processing
+				counter_msg -= 1
 				break
 			# extract timestamp
 			date_obj, line = extract_timestamp(line, format)
@@ -272,7 +260,11 @@ def generate_html(chatname):
 		if current_date == "" or msg.get_date_string() != current_date:
 			file_html.write(get_divider(msg.get_date_string()))
 			current_date = msg.get_date_string()
-		file_html.write(msg.to_html())
+		if not args.t:
+			output_format = output_date_format_short if date_format.count(':') == 1 else output_date_format
+		else:
+			output_format = args.t
+		file_html.write(msg.to_html(output_format))
 	file_html.write(html_end)
 	file_html.close()
 	return htmlname
@@ -320,15 +312,49 @@ def read_search_patterns(format):
 			break
 	return result
 
+def check_chat_format(chatname):
+	file_input = open(chatname, "r", encoding="utf-8")
+	line = file_input.readline()
+	file_input.close()
+	# android separates date and sender by hyphen, ios not...
+	if line[16] == "-" or line[18] == "-" or line[19] == "-":
+		return FORMAT_ANDROID
+	return FORMAT_IOS
+
+def check_date_format(chatname, format):
+	file_input = open(chatname, "r", encoding="utf-8")
+	line = file_input.readline()
+	file_input.close()
+	timestamp = get_timestamp_string(line, format)
+
+	if timestamp[1]=="." or timestamp[2]==".":
+		date_format = "%d.%m.%y"
+	elif timestamp[1]=="/" or timestamp[2]=="/":
+		date_format = "%m/%d/%y"
+	else:
+		raise UnknownDateFormatException(timestamp)
+
+	seconds = ""
+	if timestamp.count(':') == 2:
+		seconds = ":%S"
+
+	if timestamp.lower().endswith("m"):
+		format = f"{date_format}, %I:%M{seconds} %p"
+	else:
+		format = f"{date_format}, %H:%M{seconds}"
+	return format
+
 def configure_argparse():
 	global args
 	parser = argparse.ArgumentParser(prog="wa2h-cli", 
 									description="Commandline version of 'WhatsApp2Html'\nGenerate an HTML chatview from a WhatsApp chatexport", 
 									formatter_class=argparse.RawTextHelpFormatter,
 									epilog='''\
-Example of use
+Examples of use
 - Generate a chatview with different new colors
-	python wa2h-cli.py chat.txt --bg1 FFAA00 --bg2 336699 --text2 FFFFFF''')
+	python wa2h-cli.py chat.txt --bg1 FFAA00 --bg2 336699 --text2 FFFFFF
+- Generate a chatview with us date format and pictures with a maximum width of 1000px
+	python wa2h-cli.py chat.txt -t "%m/%d/%y, %I:%M %p" -pw 1000''')
 	parser.version=version
 	parser.add_argument("file", type=str, help="export txt of WhatsApp")    
 	parser.add_argument("-v", "--version", action="version")
@@ -342,6 +368,18 @@ limitation of the output to this number of messages
 (0 = no limit, default: 0)''')
 	parser.add_argument("-pw", metavar="width", action="store", type=int, help=f"max width of pictures in pixels (default: {pic_width}px)")
 	parser.add_argument("-ph", metavar="height", action="store", type=int, help=f"max height of pictures in pixels (default: {pic_height}px)")
+	parser.add_argument("-t", metavar="dateformat", action="store", type=str, help=f'''\
+format codes for the output timestamp > see python help for more details
+%%d  Day of the month (e.g. 01)
+%%m  Month (e.g. 12)
+%%y  Year without century (e.g. 23)
+%%Y  Year with century (e.g. 2023)
+%%H  Hour 24-hour clock (e.g. 13)
+%%I  Hour 12-hour clock (e.g. 01)
+%%p  Locale's AM or PM
+%%M  Minute (e.g. 30)
+%%S  Second (e.g. 01)
+(default: '{output_date_format.replace('%', '%%')}', if no seconds in input timestamp '{output_date_format_short.replace('%', '%%')}')''')
 	parser.add_argument("--bg1", metavar="colorcode", action="store", type=str, help="hex color code for background of user 1 (default: green)")
 	parser.add_argument("--text1", metavar="colorcode", action="store", type=str, help="hex color code for text of user 1 (default: black)")
 	parser.add_argument("--bg2", metavar="colorcode", action="store", type=str, help="hex color code for background of user 2 (default: blue)")
@@ -362,6 +400,7 @@ list of allowed audio formats separated by comma
 # init
 message_list = []
 search_patterns = {}
+date_format = None
 
 # init default values
 bg1 = "CEE5D5"
@@ -374,6 +413,8 @@ pic_height = 200
 images = ['jpg' , 'jpeg', 'gif', 'png', 'webp']
 audios = ['mp3' , 'opus', 'wav', 'm4a', 'wma']
 videos = ['mpg' , 'mpeg', 'mp4', 'mov', 'm4v', 'wmv']
+output_date_format = "%d.%m.%Y, %H:%M:%S"
+output_date_format_short = "%d.%m.%Y, %H:%M"
 
 # init argparse
 args = None
@@ -400,9 +441,10 @@ try:
 	chatname = chatname.replace("\"", "")
 	chatname = chatname.replace("'", "")
 
-	used_format = check_format(chatname)
-	search_patterns = read_search_patterns(used_format)
-	processed = read_chat(chatname, used_format)
+	chat_format = check_chat_format(chatname)
+	date_format = check_date_format(chatname, chat_format)
+	search_patterns = read_search_patterns(chat_format)
+	processed = read_chat(chatname, chat_format)
 	htmlname = generate_html(chatname)
 	print(f"DONE! {processed} messages processed (check result in '{htmlname}')")
 
@@ -411,6 +453,10 @@ except PathNotFoundException as exp:
 	print("[!] Processing aborted!")
 	print(">", exp.message)
 except PatternsNotFoundException as exp:
+	print()
+	print("[!] Processing aborted!")
+	print(">", exp.message)
+except UnknownDateFormatException as exp:
 	print()
 	print("[!] Processing aborted!")
 	print(">", exp.message)

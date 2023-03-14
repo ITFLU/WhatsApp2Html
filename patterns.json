@@ -10,7 +10,8 @@
 				" wurde gelöscht\\Z"
 			],
 			"check_ignored": [
-				" weggelassen\\Z"
+				" weggelassen\\Z",
+				" ausgeschlossen>\\Z"
 			],
 			"check_call": [
 				" Videoanruf\\Z",
@@ -26,7 +27,8 @@
 				" wurde gelöscht\\Z"
 			],
 			"check_ignored": [
-				" weggelassen\\Z"
+				" weggelassen\\Z",
+				" ausgeschlossen>\\Z"
 			],
 			"check_call": [
 				" Videoanruf\\Z",
