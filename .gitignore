@@ -1,6 +1,6 @@
 # General
-Beispiel/
-chats/
+.vscode/
+workfiles/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
