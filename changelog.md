@@ -1,6 +1,6 @@
 # WhatsApp2Html - Changelog
 
-## Version 1.0 - 14.03.2023
+## Version 1.0 - 16.03.2023
 Umstellung auf CLI-Version und "UI" für Standardfälle
 - Feature: Möglichkeit zur Definition der gewünschten Farben
 - Feature: Möglichkeit zum Definition der maximalen Bildbreite und -Höhe
