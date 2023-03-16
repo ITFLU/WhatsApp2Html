@@ -220,6 +220,10 @@ def read_chat(chatname, format):
 		else:
 			current_msg.add_to_message(line)
 
+	if current_msg != None:
+		# add last message to message list
+		message_list.append(current_msg)
+
 	file_input.close()
 	return counter_msg
 
