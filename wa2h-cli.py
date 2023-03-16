@@ -233,10 +233,10 @@ def generate_html(chatname):
 	<style>
 	* \u007B font-family: Arial, sans-serif; font-size: 14px; \u007D
 	.msg \u007B display: block; overflow-wrap: break-word; word-wrap: break-word; hyphens: auto; padding: 8px; border-radius: 5px; margin-bottom: 5px; \u007D
-	.general \u007B background-color: #CCCCCC; \u007D
+	.general \u007B background-color: #{bg0}; \u007D
 	.msg1 \u007B background-color: #{bg1}; color: #{text1}; margin-right: 70px; \u007D
 	.msg2 \u007B background-color: #{bg2}; color: #{text2}; margin-left: 70px; \u007D
-	.metadata \u007B font-size: 12px; color: #888888; font-style: italic; \u007D
+	.metadata \u007B font-size: 12px; color: #{meta}; font-style: italic; \u007D
 	.timestamp \u007B \u007D
 	.sender \u007B font-weight: bold; \u007D
 	.comment \u007B font-size: 12px; font-style: italic; \u007D
@@ -380,18 +380,20 @@ format codes for the output timestamp > see python help for more details
 %%M  Minute (e.g. 30)
 %%S  Second (e.g. 01)
 (default: '{output_date_format.replace('%', '%%')}', if no seconds in input timestamp '{output_date_format_short.replace('%', '%%')}')''')
+	parser.add_argument("--meta", metavar="colorcode", action="store", type=str, help="hex color code for text of metadata (default: dark gray)")
+	parser.add_argument("--bg0", metavar="colorcode", action="store", type=str, help="hex color code for background of general messages (default: light gray)")
 	parser.add_argument("--bg1", metavar="colorcode", action="store", type=str, help="hex color code for background of user 1 (default: green)")
 	parser.add_argument("--text1", metavar="colorcode", action="store", type=str, help="hex color code for text of user 1 (default: black)")
 	parser.add_argument("--bg2", metavar="colorcode", action="store", type=str, help="hex color code for background of user 2 (default: blue)")
 	parser.add_argument("--text2", metavar="colorcode", action="store", type=str, help="hex color code for text of user 2 (default: black)")
 	parser.add_argument("--images", metavar="list", action="store", type=str, help=f'''\
-list of allowed image formats separated by comma
+list of file extension to be treated as image separated by comma
 (default: {", ".join(map(str,images))})''')
 	parser.add_argument("--videos", metavar="list", action="store", type=str, help=f'''\
-list of allowed video formats separated by comma
+list of file extension to be treated as video separated by comma
 (default: {", ".join(map(str,videos))})''')
 	parser.add_argument("--audios", metavar="list", action="store", type=str, help=f'''\
-list of allowed audio formats separated by comma
+list of file extension to be treated as audio separated by comma
 (default: {", ".join(map(str,audios))})''')
 	args = parser.parse_args()
 
@@ -407,6 +409,8 @@ bg1 = "CEE5D5"
 text1 = "000000"
 bg2 = "CFDAE5"
 text2 = "000000"
+meta = "888888"
+bg0 = "CCCCCC"
 message_limit = 0 # 0 = no limit
 pic_width = 700
 pic_height = 200
@@ -426,6 +430,8 @@ try:
 	text1 = args.text1 if args.text1 else text1
 	bg2 = args.bg2 if args.bg2 else bg2
 	text2 = args.text2 if args.text2 else text2
+	meta = args.meta if args.meta else meta
+	bg0 = args.bg0 if args.bg0 else bg0
 	message_limit = args.l if args.l else message_limit
 	pic_width = args.pw if args.pw else pic_width
 	pic_height = args.ph if args.ph else pic_height
