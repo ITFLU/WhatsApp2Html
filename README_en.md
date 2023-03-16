@@ -66,15 +66,17 @@ optional arguments:
                      %M  Minute (e.g. 30)
                      %S  Second (e.g. 01)
                      (default: '%d.%m.%Y, %H:%M:%S', if no seconds in input timestamp '%d.%m.%Y, %H:%M')
+  --meta colorcode   hex color code for text of metadata (default: dark gray)
+  --bg0 colorcode    hex color code for background of general messages (default: light gray)
   --bg1 colorcode    hex color code for background of user 1 (default: green)
   --text1 colorcode  hex color code for text of user 1 (default: black)
   --bg2 colorcode    hex color code for background of user 2 (default: blue)
   --text2 colorcode  hex color code for text of user 2 (default: black)
-  --images list      list of allowed image formats separated by comma
+  --images list      list of file extension to be treated as image separated by comma
                      (default: jpg, jpeg, gif, png, webp)
-  --videos list      list of allowed video formats separated by comma
+  --videos list      list of file extension to be treated as video separated by comma
                      (default: mpg, mpeg, mp4, mov, m4v, wmv)
-  --audios list      list of allowed audio formats separated by comma
+  --audios list      list of file extension to be treated as audio separated by comma
                      (default: mp3, opus, wav, m4a, wma)
 ```
 
