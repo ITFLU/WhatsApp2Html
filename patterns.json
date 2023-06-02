@@ -11,11 +11,13 @@
 			],
 			"check_ignored": [
 				" weggelassen\\Z",
-				" ausgeschlossen>\\Z"
+				" ausgeschlossen>\\Z",
+				" omitted>\\Z"
 			],
 			"check_call": [
 				" Videoanruf\\Z",
-				" Sprachanruf\\Z"
+				" Sprachanruf\\Z",
+				"Missed voice call\\Z"
 			]
 		},
 		{
@@ -28,7 +30,8 @@
 			],
 			"check_ignored": [
 				" weggelassen\\Z",
-				" ausgeschlossen>\\Z"
+				" ausgeschlossen>\\Z",
+				" omitted>\\Z"
 			],
 			"check_call": [
 				" Videoanruf\\Z",

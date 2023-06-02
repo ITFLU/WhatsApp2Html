@@ -9,7 +9,7 @@ Asks the user for the chat file and calls wa2h-cli.py with the default values so
 Author:  Michael Wicki
 Version: 1.0
 """
-version = "v1.0"
+version = "1.0"
 
 import os
 

@@ -1,5 +1,9 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.0.1 - 02.06.2023
+- Bugfix: Problem bei der Erkennung einer zweiten Message-Zeile behoben
+- Bugfix: Erkennung des Chat-Formats (Android vs. iOS) verbessert/korrigiert
+
 ## Version 1.0 - 16.03.2023
 Umstellung auf CLI-Version und "UI" für Standardfälle
 - Feature: Möglichkeit zur Definition der gewünschten Farben

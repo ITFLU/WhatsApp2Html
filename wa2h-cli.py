@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.0
+Version: 1.0.1
 """
-version = "1.0"
+version = "1.0.1"
 
 from pathlib import Path
 from datetime import datetime
@@ -112,7 +112,8 @@ def is_second_row_of_msg(line, format):
 		if format == FORMAT_IOS:
 			return not line.startswith('[')
 		# android: it's an additional row if no date is available
-		return (line[2] != "." and line[2] != "/") or (line[5] != "." and line[5] != "/") or (line[12] != ":" and line[11] != ":")
+		date_obj, ln = extract_timestamp(line, format)
+		return date_obj == None
 	except:
 		return True
 	
@@ -180,6 +181,13 @@ def check_for_message_comment(line):
 		return True
 	return False
 
+def clean_line(line):
+	# remove problematic characters
+	line = line.replace('\u200e', '')
+	line = line.replace('\u200f', '')
+	line = line.replace('\u202f', ' ')
+	return line
+
 def read_chat(chatname, format):
 	print(f"[i] Chat seems to be from {format}")
 	# Open files
@@ -190,9 +198,7 @@ def read_chat(chatname, format):
 	current_msg = None
 	for line in file_input:
 		counter_line+=1
-		# remove problematic characters
-		line = line.replace('\u200e', '')
-		line = line.replace('\u200f', '')
+		line = clean_line(line)
 		if not is_second_row_of_msg(line, format):
 			if current_msg != None:
 				# new message line found, add last message to message list
@@ -320,8 +326,9 @@ def check_chat_format(chatname):
 	file_input = open(chatname, "r", encoding="utf-8")
 	line = file_input.readline()
 	file_input.close()
+	line = clean_line(line)
 	# android separates date and sender by hyphen, ios not...
-	if line[16] == "-" or line[18] == "-" or line[19] == "-":
+	if line[16:20].find("-") != -1:
 		return FORMAT_ANDROID
 	return FORMAT_IOS
 
@@ -329,6 +336,7 @@ def check_date_format(chatname, format):
 	file_input = open(chatname, "r", encoding="utf-8")
 	line = file_input.readline()
 	file_input.close()
+	line = clean_line(line)
 	timestamp = get_timestamp_string(line, format)
 
 	if timestamp[1]=="." or timestamp[2]==".":
