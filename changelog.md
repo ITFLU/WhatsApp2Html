@@ -1,5 +1,11 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.1 - 21.09.2023
+- Update:  Erkennung des Timestamp-Formats verbessert
+- Update:  Flags -ph & -pw aus Konsistenzgründen zu --ph & --pw gewechselt
+- Update:  Flag -t aus Konsistenzgründen zu --odate gewechselt (neues Feature --idate)
+- Feature: Möglichkeit zur Definition des vorliegenden Eingabeformats des Timestamps (--idate)
+
 ## Version 1.0.1 - 02.06.2023
 - Bugfix: Problem bei der Erkennung einer zweiten Message-Zeile behoben
 - Bugfix: Erkennung des Chat-Formats (Android vs. iOS) verbessert/korrigiert

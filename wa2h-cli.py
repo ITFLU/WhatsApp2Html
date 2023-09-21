@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.0.1
+Version: 1.1
 """
-version = "1.0.1"
+version = "1.1"
 
 from pathlib import Path
 from datetime import datetime
@@ -132,7 +132,7 @@ def extract_timestamp(line, format):
 	if format==FORMAT_ANDROID:
 		pos_timestamp_end = line.find('-')
 	
-	date_obj = datetime.strptime(get_timestamp_string(line, format), date_format)
+	date_obj = datetime.strptime(get_timestamp_string(line, format), timestamp_format)
 	line = line[pos_timestamp_end+2:] # +1 date end, +1 blank
 	return (date_obj, line)
 
@@ -270,10 +270,10 @@ def generate_html(chatname):
 		if current_date == "" or msg.get_date_string() != current_date:
 			file_html.write(get_divider(msg.get_date_string()))
 			current_date = msg.get_date_string()
-		if not args.t:
-			output_format = output_date_format_short if date_format.count(':') == 1 else output_date_format
+		if not args.odate:
+			output_format = output_date_format_short if timestamp_format.count(':') == 1 else output_date_format
 		else:
-			output_format = args.t
+			output_format = args.odate
 		file_html.write(msg.to_html(output_format))
 	file_html.write(html_end)
 	file_html.close()
@@ -332,29 +332,58 @@ def check_chat_format(chatname):
 		return FORMAT_ANDROID
 	return FORMAT_IOS
 
-def check_date_format(chatname, format):
+def get_date_format(chatname, format, delimiter):
+	with open(chatname, "r", encoding="utf-8") as file_input:
+		year = "%y"
+		for line in file_input:
+			line = clean_line(line)
+			timestamp = get_timestamp_string(line, format)
+			first_pos = timestamp.find(delimiter)
+			second_pos = timestamp.find(delimiter, first_pos+1)
+			year_element = timestamp[second_pos+1:timestamp.find(" ")]
+			if "," in year_element:
+				year_element = year_element[:-1]
+			if len(year_element) == 4:
+				year = "%Y"
+			first_elem = timestamp[:first_pos]
+			if int(first_elem) > 12:
+				return f"%d{delimiter}%m{delimiter}{year}"
+			second_elem = timestamp[first_pos+1:second_pos]
+			if int(second_elem) > 12:
+				return f"%m{delimiter}%d{delimiter}{year}"
+		raise UnknownDateFormatException("day and month are not clear, use --idate to define it yourself")
+	
+
+def check_timestamp_format(chatname, format):
+	delimiter = ""
+	# read first line
 	file_input = open(chatname, "r", encoding="utf-8")
 	line = file_input.readline()
 	file_input.close()
 	line = clean_line(line)
+	# detect day-month delimiter
 	timestamp = get_timestamp_string(line, format)
-
 	if timestamp[1]=="." or timestamp[2]==".":
-		date_format = "%d.%m.%y"
+		delimiter = "."
 	elif timestamp[1]=="/" or timestamp[2]=="/":
-		date_format = "%m/%d/%y"
+		delimiter = "/"
 	else:
 		raise UnknownDateFormatException(timestamp)
-
+	# check for day- and month-field
+	date_format = get_date_format(chatname, format, delimiter)
+	# detect existence of a comma between date and time
+	comma = ""
+	if "," in timestamp:
+		comma = ","
+	# detect existence of secons
 	seconds = ""
 	if timestamp.count(':') == 2:
 		seconds = ":%S"
-
+	# dectect existence of am/pm indicator
+	time_format = f"%H:%M{seconds}"
 	if timestamp.lower().endswith("m"):
-		format = f"{date_format}, %I:%M{seconds} %p"
-	else:
-		format = f"{date_format}, %H:%M{seconds}"
-	return format
+		time_format = f"%I:%M{seconds} %p"
+	return f"{date_format}{comma} {time_format}"
 
 def configure_argparse():
 	global args
@@ -366,7 +395,7 @@ Examples of use
 - Generate a chatview with different new colors
 	python wa2h-cli.py chat.txt --bg1 FFAA00 --bg2 336699 --text2 FFFFFF
 - Generate a chatview with us date format and pictures with a maximum width of 1000px
-	python wa2h-cli.py chat.txt -t "%m/%d/%y, %I:%M %p" -pw 1000''')
+	python wa2h-cli.py chat.txt --odate "%m/%d/%y, %I:%M %p" --pw 1000''')
 	parser.version=version
 	parser.add_argument("file", type=str, help="export txt of WhatsApp")    
 	parser.add_argument("-v", "--version", action="version")
@@ -378,9 +407,10 @@ could be only a path or can include a filename too
 	parser.add_argument("-l", metavar="number", action="store", type=int, help='''\
 limitation of the output to this number of messages
 (0 = no limit, default: 0)''')
-	parser.add_argument("-pw", metavar="width", action="store", type=int, help=f"max width of pictures in pixels (default: {pic_width}px)")
-	parser.add_argument("-ph", metavar="height", action="store", type=int, help=f"max height of pictures in pixels (default: {pic_height}px)")
-	parser.add_argument("-t", metavar="dateformat", action="store", type=str, help=f'''\
+	parser.add_argument("--pw", metavar="width", action="store", type=int, help=f"max width of pictures in pixels (default: {pic_width}px)")
+	parser.add_argument("--ph", metavar="height", action="store", type=int, help=f"max height of pictures in pixels (default: {pic_height}px)")
+	parser.add_argument("--idate", metavar="dateformat", action="store", type=str, help=f"format codes for the input timestamp (default: detected automatically) > see --odate for details")
+	parser.add_argument("--odate", metavar="dateformat", action="store", type=str, help=f'''\
 format codes for the output timestamp > see python help for more details
 %%d  Day of the month (e.g. 01)
 %%m  Month (e.g. 12)
@@ -414,7 +444,7 @@ list of file extension to be treated as audio separated by comma
 # init
 message_list = []
 search_patterns = {}
-date_format = None
+timestamp_format = None
 
 # init default values
 bg1 = "CEE5D5"
@@ -460,7 +490,10 @@ try:
 	chatname = chatname.replace("'", "")
 
 	chat_format = check_chat_format(chatname)
-	date_format = check_date_format(chatname, chat_format)
+	if not args.idate:
+		timestamp_format = check_timestamp_format(chatname, chat_format)
+	else:
+		timestamp_format = args.idate
 	search_patterns = read_search_patterns(chat_format)
 	processed = read_chat(chatname, chat_format)
 	htmlname = generate_html(chatname)

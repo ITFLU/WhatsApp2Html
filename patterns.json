@@ -23,7 +23,10 @@
 		{
 			"format": "ios",
 			"check_attachment": [
-				"\\A<Anhang:"
+				"\\A<Anhang:",
+				"\\A<adjunto:",
+				"\\A< pièce jointe :",
+				"\\A<attached:"
 			],
 			"check_deleted": [
 				" wurde gelöscht\\Z"
@@ -35,7 +38,8 @@
 			],
 			"check_call": [
 				" Videoanruf\\Z",
-				" Sprachanruf\\Z"
+				" Sprachanruf\\Z",
+				"Appel vocal manqué\\Z"
 			]
 		}
 	]
