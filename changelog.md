@@ -1,5 +1,8 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.1.1 - 28.09.2023
+- Bugfix: Probleme bei der Umwandlung mehrzeiliger Messages aufgrund der neuen Timestamp-Erkennung behoben
+
 ## Version 1.1 - 21.09.2023
 - Update:  Erkennung des Timestamp-Formats verbessert
 - Update:  Flags -ph & -pw aus Konsistenzgründen zu --ph & --pw gewechselt
