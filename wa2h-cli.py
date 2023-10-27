@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.1.1
+Version: 1.1.2
 """
-version = "1.1.1"
+version = "1.1.2"
 
 from pathlib import Path
 from datetime import datetime
@@ -107,6 +107,24 @@ class UnknownDateFormatException(Exception):
 def get_divider(date):
 	return f"<div class='divider'>{date}</div>"
 
+"""
+is_second_row_... function for checks where the timestamp format is not available yet
+"""
+def is_second_row_without_timestampformat(line, format, delimiter):
+	try:
+		if format == FORMAT_IOS:
+			return not line.startswith('[')
+		# android: it's an additional row if no date is available
+		pos_dash = line.find('-')
+		if pos_dash < 0 or pos_dash > 40:
+			return True
+		return delimiter not in line[:pos_dash-1]
+	except:
+		return True
+
+"""
+usual check for second row of a message (timestamp format is available)
+"""
 def is_second_row_of_msg(line, format):
 	try:
 		if format == FORMAT_IOS:
@@ -337,7 +355,8 @@ def get_date_format(chatname, format, delimiter):
 		year = "%y"
 		for line in file_input:
 			line = clean_line(line)
-			if is_second_row_of_msg(line, format):
+			# is_second_row_of_msg not possible because the timestamp format is not available yet
+			if is_second_row_without_timestampformat(line, format, delimiter):
 				continue
 			timestamp = get_timestamp_string(line, format)
 			first_pos = timestamp.find(delimiter)

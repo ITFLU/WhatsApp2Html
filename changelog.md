@@ -1,5 +1,8 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.1.2 - 26.10.2023
+- Bugfix: Fehler bei der Erkennung von mehrzeiligen Mitteilungen bei Android-Chats behoben
+
 ## Version 1.1.1 - 28.09.2023
 - Bugfix: Probleme bei der Umwandlung mehrzeiliger Messages aufgrund der neuen Timestamp-Erkennung behoben
 
