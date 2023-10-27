@@ -4,7 +4,8 @@
 			"format": "android",
 			"check_attachment": [
 				" \\(Datei angehängt\\)\\Z",
-				" \\(File attached\\)\\Z"
+				" \\(File attached\\)\\Z",
+				" \\(załączony plik\\)\\Z"
 			],
 			"check_deleted": [
 				" wurde gelöscht\\Z"
