@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.1.2
+Version: 1.1.3
 """
-version = "1.1.2"
+version = "1.1.3"
 
 from pathlib import Path
 from datetime import datetime
@@ -101,6 +101,12 @@ class UnknownDateFormatException(Exception):
 	"""
 	def __init__(self, date_string):
 		self.message = f"Date format could not be identified ('{date_string}')"
+class UnknownChatFormatException(Exception):
+	"""
+	error in case of chat format could not be identified
+	"""
+	def __init__(self):
+		self.message = f"Chat format could not be identified if iOS or Android (doesn't start with '[' and doesn't contain '-' between positions 13 to 20)"
 
 
 
@@ -345,10 +351,12 @@ def check_chat_format(chatname):
 	line = file_input.readline()
 	file_input.close()
 	line = clean_line(line)
+	if line.startswith('['):
+		return FORMAT_IOS
 	# android separates date and sender by hyphen, ios not...
-	if line[16:20].find("-") != -1:
+	if line[13:20].find("-") != -1:
 		return FORMAT_ANDROID
-	return FORMAT_IOS
+	raise UnknownChatFormatException()
 
 def get_date_format(chatname, format, delimiter):
 	with open(chatname, "r", encoding="utf-8") as file_input:
@@ -529,6 +537,10 @@ except PatternsNotFoundException as exp:
 	print("[!] Processing aborted!")
 	print(">", exp.message)
 except UnknownDateFormatException as exp:
+	print()
+	print("[!] Processing aborted!")
+	print(">", exp.message)
+except UnknownChatFormatException as exp:
 	print()
 	print("[!] Processing aborted!")
 	print(">", exp.message)
