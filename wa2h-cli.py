@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.1.3
+Version: 1.2
 """
-version = "1.1.3"
+version = "1.2"
 
 from pathlib import Path
 from datetime import datetime
@@ -63,11 +63,11 @@ class Message:
 			ext = self.attachment_name[self.attachment_name.rfind('.')+1:]
 			if ext in images:
 				msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' style='max-height:{pic_height}px;max-width:{pic_width}px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
+			elif ext in videos:
+				msg_text = f"<a href='{self.attachment_name}' target='_blank'><video src='{self.attachment_name}' style='max-height:{pic_height}px;max-width:{pic_width}px'></a>&nbsp;&nbsp;<span class='comment'>VIDEO: {self.attachment_name}</span>"
 			else:
 				file_format = "DATEI"
-				if ext in videos:
-					file_format = "VIDEO"
-				elif ext in audios:
+				if ext in audios:
 					file_format = "AUDIO"
 				msg_text = f"{file_format}: <a href='{self.attachment_name}' target='_blank'>{self.attachment_name}</a>"
 		if self.comment != "":
