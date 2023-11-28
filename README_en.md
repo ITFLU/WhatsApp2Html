@@ -67,6 +67,8 @@ optional arguments:
                       %M  Minute (e.g. 30)
                       %S  Second (e.g. 01)
                       (default: '%d.%m.%Y, %H:%M:%S', if no seconds in input timestamp '%d.%m.%Y, %H:%M')
+  --fdate date        start date from which messages should be read (until now or --tdate, dateformat: %d.%m.%Y)
+  --tdate date        end date until messages should be read (from file start or --fdate, dateformat: %d.%m.%Y)
   --meta colorcode    hex color code for text of metadata (default: dark gray)
   --bg0 colorcode     hex color code for background of general messages (default: light gray)
   --bg1 colorcode     hex color code for background of user 1 (default: green)

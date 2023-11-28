@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.1.3
+Version: 1.2
 """
-version = "1.1.3"
+version = "1.2"
 
 from pathlib import Path
 from datetime import datetime
@@ -63,11 +63,11 @@ class Message:
 			ext = self.attachment_name[self.attachment_name.rfind('.')+1:]
 			if ext in images:
 				msg_text = f"<a href='{self.attachment_name}' target='_blank'><img src='{self.attachment_name}' style='max-height:{pic_height}px;max-width:{pic_width}px'></a>&nbsp;&nbsp;<span class='comment'>{self.attachment_name}</span>"
+			elif ext in videos:
+				msg_text = f"<a href='{self.attachment_name}' target='_blank'><video src='{self.attachment_name}' style='max-height:{pic_height}px;max-width:{pic_width}px'></a>&nbsp;&nbsp;<span class='comment'>VIDEO: {self.attachment_name}</span>"
 			else:
 				file_format = "DATEI"
-				if ext in videos:
-					file_format = "VIDEO"
-				elif ext in audios:
+				if ext in audios:
 					file_format = "AUDIO"
 				msg_text = f"{file_format}: <a href='{self.attachment_name}' target='_blank'>{self.attachment_name}</a>"
 		if self.comment != "":
@@ -107,6 +107,12 @@ class UnknownChatFormatException(Exception):
 	"""
 	def __init__(self):
 		self.message = f"Chat format could not be identified if iOS or Android (doesn't start with '[' and doesn't contain '-' between positions 13 to 20)"
+class InvalidRangeDateException(Exception):
+	"""
+	error in case of date format of 'from' or 'to' range is not valid
+	"""
+	def __init__(self):
+		self.message = f"Date format of chat range must correspond to %d.%m.%Y (e.g. 31.01.2023) and 'from' has to be earlier than 'to'"
 
 
 
@@ -213,7 +219,26 @@ def clean_line(line):
 	return line
 
 def read_chat(chatname, format):
+	# range handling
+	range_from = None
+	text_from = "file start"
+	range_to = None
+	text_to = "now"
+	try:
+		if args.fdate:
+			range_from = datetime.strptime(args.fdate, "%d.%m.%Y")
+			text_from = args.fdate
+		if args.tdate:
+			range_to = datetime.strptime(f"{args.tdate} 23:59:59", "%d.%m.%Y %H:%M:%S")
+			text_to = args.tdate
+		if range_from != None and range_to!= None and range_from > range_to:
+			raise InvalidRangeDateException() 
+	except ValueError:
+		raise InvalidRangeDateException()
+
 	print(f"[i] Chat seems to be from {format}")
+	if range_from != None or range_to != None:
+		print(f"[i] Using date range '{text_from} - {text_to}'")
 	# Open files
 	file_input = open(chatname, "r", encoding="utf-8")
 	counter_line = 0
@@ -227,13 +252,21 @@ def read_chat(chatname, format):
 			if current_msg != None:
 				# new message line found, add last message to message list
 				message_list.append(current_msg)
+			# extract timestamp
+			date_obj, line = extract_timestamp(line, format)
+			# date range handling
+			if range_from != None and date_obj < range_from:
+				# defined 'from' date range not reached yet > process next message
+				continue
+			if range_to != None and date_obj > range_to:
+				# defined 'to' date range reached > cancel processing
+				break
+			# check for message limit
 			counter_msg+=1
 			if message_limit > 0 and counter_msg > message_limit:
 				# defined limit reached > cancel processing
 				counter_msg -= 1
 				break
-			# extract timestamp
-			date_obj, line = extract_timestamp(line, format)
 			# extract person
 			person_str, line = extract_person(line, format)
 			if person_str != "" and first_person == "":
@@ -248,9 +281,10 @@ def read_chat(chatname, format):
 			if check_for_message_comment(line):
 				current_msg.set_comment(line)
 		else:
-			current_msg.add_to_message(line)
+			if current_msg != None:
+				current_msg.add_to_message(line)
 
-	if current_msg != None:
+	if current_msg != None and range_to == None:
 		# add last message to message list
 		message_list.append(current_msg)
 
@@ -451,6 +485,8 @@ format codes for the output timestamp > see python help for more details
 %%M  Minute (e.g. 30)
 %%S  Second (e.g. 01)
 (default: '{output_date_format.replace('%', '%%')}', if no seconds in input timestamp '{output_date_format_short.replace('%', '%%')}')''')
+	parser.add_argument("--fdate", metavar="date", action="store", type=str, help=f"start date from which messages should be read (until now or --tdate, dateformat: %%d.%%m.%%Y)")
+	parser.add_argument("--tdate", metavar="date", action="store", type=str, help=f"end date until messages should be read (from file start or --fdate, dateformat: %%d.%%m.%%Y)")
 	parser.add_argument("--meta", metavar="colorcode", action="store", type=str, help="hex color code for text of metadata (default: dark gray)")
 	parser.add_argument("--bg0", metavar="colorcode", action="store", type=str, help="hex color code for background of general messages (default: light gray)")
 	parser.add_argument("--bg1", metavar="colorcode", action="store", type=str, help="hex color code for background of user 1 (default: green)")
@@ -537,6 +573,10 @@ except PatternsNotFoundException as exp:
 	print("[!] Processing aborted!")
 	print(">", exp.message)
 except UnknownDateFormatException as exp:
+	print()
+	print("[!] Processing aborted!")
+	print(">", exp.message)
+except InvalidRangeDateException as exp:
 	print()
 	print("[!] Processing aborted!")
 	print(">", exp.message)
