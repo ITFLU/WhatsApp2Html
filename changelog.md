@@ -1,5 +1,8 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.2.1 - 13.08.2024
+- Bugfix: Check auf das Vorhandensein von pattern.json eingefügt
+
 ## Version 1.2 - 27.11.2023
 - Feature: Möglichkeit zur Einschränkung des zu verarbeitenden Zeitraums (--fdate & --tdate)
 - Update:  Videos werden nun mit den video-Tag eingebunden
