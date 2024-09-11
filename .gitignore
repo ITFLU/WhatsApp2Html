@@ -133,3 +133,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+exe/patterns.json
+exe/wa2h-cli.exe
