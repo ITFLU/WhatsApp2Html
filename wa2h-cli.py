@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.2
+Version: 1.2.1
 """
-version = "1.2"
+version = "1.2.1"
 
 from pathlib import Path
 from datetime import datetime
@@ -368,6 +368,8 @@ def get_output_path(inputname):
 
 def read_search_patterns(format):
 	result = {}
+	if not os.path.exists('patterns.json'): 
+		raise PatternsNotFoundException()
 	with open('patterns.json', 'r', encoding='utf-8') as d:
 		data = d.read()
 	patterns = json.loads(data)
