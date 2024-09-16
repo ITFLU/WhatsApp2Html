@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.2.1
+Version: 1.3
 """
-version = "1.2.1"
+version = "1.3"
 
 from pathlib import Path
 from datetime import datetime
@@ -416,7 +416,13 @@ def get_date_format(chatname, format, delimiter):
 			second_elem = timestamp[first_pos+1:second_pos]
 			if int(second_elem) > 12:
 				return f"%m{delimiter}%d{delimiter}{year}"
-		raise UnknownDateFormatException("day and month are not clear, use --idate to define it yourself")
+
+			if args.month_first:
+				return f"%m{delimiter}%d{delimiter}{year}"
+			if args.day_first:
+				return f"%d{delimiter}%m{delimiter}{year}"
+
+		raise UnknownDateFormatException("day and month are not clear, use --month-first, --day-first or define the whole timestamp format with --idate")
 	
 
 def check_timestamp_format(chatname, format):
@@ -474,6 +480,9 @@ limitation of the output to this number of messages
 (0 = no limit, default: 0)''')
 	parser.add_argument("--pw", metavar="width", action="store", type=int, help=f"max width of pictures in pixels (default: {pic_width}px)")
 	parser.add_argument("--ph", metavar="height", action="store", type=int, help=f"max height of pictures in pixels (default: {pic_height}px)")
+	group = parser.add_mutually_exclusive_group()
+	group.add_argument("--month-first", action="store_true", help="in case of an ambiguous date format (day and month in whole chat both under 13) define the month as first value > ignored if detection is successful")
+	group.add_argument("--day-first", action="store_true", help="like --month-first but define the day as first value")
 	parser.add_argument("--idate", metavar="dateformat", action="store", type=str, help=f"format codes for the input timestamp (default: detected automatically) > see --odate for details")
 	parser.add_argument("--odate", metavar="dateformat", action="store", type=str, help=f'''\
 format codes for the output timestamp > see python help for more details

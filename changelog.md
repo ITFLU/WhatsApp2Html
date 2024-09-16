@@ -1,5 +1,8 @@
 # WhatsApp2Html - Changelog
 
+## Version 1.3 - 11.09.2024
+- Feature: ...
+
 ## Version 1.2.1 - 13.08.2024
 - Bugfix: Check auf das Vorhandensein von pattern.json eingefügt
 

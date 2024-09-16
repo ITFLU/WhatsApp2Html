@@ -55,6 +55,8 @@ optional arguments:
                       (0 = no limit, default: 0)
   --pw width          max width of pictures in pixels (default: 700px)
   --ph height         max height of pictures in pixels (default: 200px)
+  --month-first       in case of an ambiguous date format (day and month in whole chat both under 13) define the month as first value > ignored if detection is successful
+  --day-first         like --month-first but define the day as first value
   --idate dateformat  format codes for the input timestamp (default: detected automatically) > see --odate for details
   --odate dateformat  format codes for the output timestamp > see python help for more details
                       %d  Day of the month (e.g. 01)
