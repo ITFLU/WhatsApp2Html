@@ -5,8 +5,8 @@
 			"check_attachment": [
 				" \\(Datei angehängt\\)\\Z",
 				" \\(File attached\\)\\Z",
-				" \\(file allegato\\)\\Z",
-				" \\(załączony plik\\)\\Z"
+				" \\(załączony plik\\)\\Z",
+				" \\(приложена датотека\\)\\Z"
 			],
 			"check_deleted": [
 				" wurde gelöscht\\Z"
