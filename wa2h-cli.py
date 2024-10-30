@@ -7,9 +7,9 @@ Generates an HTML chatview from a WhatsApp chatexport (.txt) including possibly 
 
 (c) 2023, Luzerner Polizei
 Author:  Michael Wicki
-Version: 1.3
+Version: 1.3.1
 """
-version = "1.3"
+version = "1.3.1"
 
 from pathlib import Path
 from datetime import datetime
@@ -410,6 +410,11 @@ def get_date_format(chatname, format, delimiter):
 				year_element = year_element[:-1]
 			if len(year_element) == 4:
 				year = "%Y"
+			# check for serbian year with point at the end
+			if len(year_element) == 5 and year_element[4]=='.':
+				year = "%Y."
+			if len(year_element) == 3 and year_element[2]=='.':
+				year = "%y."
 			first_elem = timestamp[:first_pos]
 			if int(first_elem) > 12:
 				return f"%d{delimiter}%m{delimiter}{year}"
