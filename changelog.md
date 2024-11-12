@@ -1,7 +1,10 @@
 # WhatsApp2Html - Changelog
 
-## Version 1.3 - 11.09.2024
-- Feature: ...
+## Version 1.3.1 - 30.10.2024
+- Bugfix: Fehler bei der Verarbeitung serbischer Datumsformate mit einem Punkt nach der Jahreszahl behoben
+
+## Version 1.3 - 16.09.2024
+- Feature: Möglichkeit zur Definition der Datumsreihenfolge via Flags bei unklarem Datumsformat (--day-first & --month-first)
 
 ## Version 1.2.1 - 13.08.2024
 - Bugfix: Check auf das Vorhandensein von pattern.json eingefügt
